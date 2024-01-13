@@ -6,6 +6,7 @@
 Rectangle AnimationDemoButton = {10,10,250,50};
 Rectangle TileDemoButton = {10,70,250,50};
 Rectangle MotionDemoButton = {10,130,250,50};
+Rectangle StartGameButton = {10,190,250,50};
 
 const int MARGIN_X = 5;
 const int MARGIN_Y = 10;
@@ -36,6 +37,10 @@ Demo_t selectDemo()
     {
         demoSelected = MOTION_DEMO;
     }
+    else if ( CheckCollisionPointRec(mousePos, StartGameButton) )
+    {
+        demoSelected = GAME;
+    }
     else
     {
         // nothing to do
@@ -54,12 +59,15 @@ void drawSelectionScreen()
     Color AnimationDemoColor = CheckCollisionPointRec(mousePos, AnimationDemoButton) ? RED : DARKGRAY;
     Color TileDemoColor = CheckCollisionPointRec(mousePos, TileDemoButton) ? RED : DARKGRAY;
     Color MotionDemoColor = CheckCollisionPointRec(mousePos, MotionDemoButton) ? RED : DARKGRAY;
+    Color StartGameColor = CheckCollisionPointRec(mousePos, StartGameButton) ? RED : DARKGRAY;
     DrawRectangleRec(AnimationDemoButton, AnimationDemoColor);
     DrawText("Animation Demo", AnimationDemoButton.x+MARGIN_X, AnimationDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
     DrawRectangleRec(TileDemoButton, TileDemoColor);
     DrawText("Tile Demo", TileDemoButton.x+MARGIN_X, TileDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
     DrawRectangleRec(MotionDemoButton, MotionDemoColor);
     DrawText("Motion Demo", MotionDemoButton.x+MARGIN_X, MotionDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
+    DrawRectangleRec(StartGameButton, StartGameColor);
+    DrawText("GAME", StartGameButton.x+MARGIN_X, StartGameButton.y+MARGIN_Y, 30, LIGHTGRAY);
     EndDrawing();
 }
 

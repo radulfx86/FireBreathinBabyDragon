@@ -1,136 +1,96 @@
 #include "raylib.h"
 #include <vector>
 #include <iostream>
+#include "demos.h"
 
-#define NULLCHECK(PTR) \
-do { \
-    if ( PTR == 0 ) { \
-        return; \
-    }\
-} while(0)
+Rectangle AnimationDemoButton = {10,10,250,50};
+Rectangle TileDemoButton = {10,70,250,50};
+Rectangle MotionDemoButton = {10,130,250,50};
 
-typedef struct
+const int MARGIN_X = 5;
+const int MARGIN_Y = 10;
+
+Demo_t selectDemo()
 {
-    std::vector<float> frameTimes;
-    std::vector<Rectangle> frames;
-    unsigned int currentFrame;
-    float delta;
-} Animation_t;
-
-typedef struct
-{
-    Animation_t animation;
-    Vector2 position;
-    Texture2D texture;
-} Sprite_t;
-
-
-Sprite_t DragonSprite;
-Sprite_t VillagerSprite;
-Sprite_t MageSprite;
-
-Animation_t walk_left = {
-        // frameTimes
-        { 0.3, 0.3 },
-        // framePos
-        {
-            {16.0,0.0,16.0,16.0},
-            {32.0,0.0,16.0,16.0}
-        },
-        0,
-        0.0
-    };
-
-Animation_t walk_right = {
-        // frameTimes
-        { 0.3, 0.3 },
-        // framePos
-        {
-            {32.0,0.0,-16.0,16.0},
-            {48.0,0.0,-16.0,16.0}
-        },
-        0,
-        0.0
-    };
-
-void loadDefaultCharacters()
-{
-    DragonSprite = {
-    // animation
+    if ( WindowShouldClose() )
     {
-        // frameTimes
-        { 0.2, 0.2, 0.2, 0.2, 0.2 },
-        // framePos
-        {   {0.0,0.0,32.0,32.0},
-            {32.0,0.0,32.0,32.0},
-            {64.0,0.0,32.0,32.0},
-            {96.0,0.0,32.0,32.0},
-            {128.0,0.0,32.0,32.0}
-        },
-        0,
-        0.0
-    },
-    {100.0,100.0},
-    LoadTexture("images/dragon_0_20240112_01.png")
-    };
-    VillagerSprite = {
-    walk_right,
-    {200.0,100.0},
-    LoadTexture("images/villagers_20240112_01.png")
-    };
-    MageSprite = {
-    walk_left,
-    {200.0,100.0},
-    LoadTexture("images/villagers_20240112_01.png")
-    };
-}
-
-void updateAnimation(float delta, Animation_t *animation)
-{
-    NULLCHECK(animation);
-    float tmpDelta = delta + animation->delta;
-    while ( tmpDelta > animation->frameTimes[animation->currentFrame] )
-    {
-        tmpDelta -= animation->frameTimes[animation->currentFrame];
-        animation->currentFrame = (animation->currentFrame + 1) % animation->frameTimes.size();
+        return QUIT;
     }
-    animation->delta = tmpDelta;
-    //std::cout << "delta = " << delta << " updated animation of " << animation->frames.size() << " to frame " << animation->currentFrame << " with internal delta at " << animation->delta << "\n";
+
+    Demo_t demoSelected = NONE;
+    if ( !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
+    {
+        return demoSelected;
+    }
+
+    Vector2 mousePos = GetMousePosition();
+    if ( CheckCollisionPointRec(mousePos, AnimationDemoButton) )
+    {
+        demoSelected = ANIMATION_DEMO;
+    }
+    else if ( CheckCollisionPointRec(mousePos, TileDemoButton) )
+    {
+        demoSelected = TILE_DEMO;
+    }
+    else if ( CheckCollisionPointRec(mousePos, MotionDemoButton) )
+    {
+        demoSelected = MOTION_DEMO;
+    }
+    else
+    {
+        // nothing to do
+    }
+    return demoSelected;
 }
 
-void drawChar(float delta, Sprite_t *character)
+void drawSelectionScreen()
 {
-    NULLCHECK(character);
-    updateAnimation(delta, &character->animation);
-    DrawTextureRec(character->texture, character->animation.frames[character->animation.currentFrame], character->position, WHITE);
+    BeginDrawing();
+    float delta = GetFrameTime();
+    std::cout << "delta: " << delta << " s\n";
+    std::cout << "FPS: " << 1.0 / delta << "\n";
+    ClearBackground(BLACK);
+    Vector2 mousePos = GetMousePosition();
+    Color AnimationDemoColor = CheckCollisionPointRec(mousePos, AnimationDemoButton) ? RED : DARKGRAY;
+    Color TileDemoColor = CheckCollisionPointRec(mousePos, TileDemoButton) ? RED : DARKGRAY;
+    Color MotionDemoColor = CheckCollisionPointRec(mousePos, MotionDemoButton) ? RED : DARKGRAY;
+    DrawRectangleRec(AnimationDemoButton, AnimationDemoColor);
+    DrawText("Animation Demo", AnimationDemoButton.x+MARGIN_X, AnimationDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
+    DrawRectangleRec(TileDemoButton, TileDemoColor);
+    DrawText("Tile Demo", TileDemoButton.x+MARGIN_X, TileDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
+    DrawRectangleRec(MotionDemoButton, MotionDemoColor);
+    DrawText("Motion Demo", MotionDemoButton.x+MARGIN_X, MotionDemoButton.y+MARGIN_Y, 30, LIGHTGRAY);
+    EndDrawing();
 }
 
 int main(void)
 {
-    InitWindow(800, 450, "raylib [core] example - basic window");
-    loadDefaultCharacters();
+    InitWindow(270, 450, "select demo");
+    Demo_t demoSelected = NONE;
     //SetTargetFPS(10);
-    while (!WindowShouldClose())
+    while (demoSelected == NONE)
     {
-        BeginDrawing();
-            float delta = GetFrameTime();
-            std::cout << "delta: " << delta << " s\n";
-            std::cout << "FPS: " << 1.0 / delta << "\n";
-            ClearBackground(BLACK);
-            DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
-
-            for(int i = 0; i < 10000; ++i )
-            {
-                VillagerSprite.position.x = (i/(800/16))*16;
-                VillagerSprite.position.y = (i%(450/16))*16;
-                drawChar(delta, &VillagerSprite);
-                MageSprite.position.x = 8+(i/(800/16))*16;
-                MageSprite.position.y = 8+(i%(450/16))*16;
-                drawChar(delta, &MageSprite);
-            }
-            drawChar(delta, &DragonSprite);
-//        DrawTextureRec(DragonSprite.texture, DragonSprite.animation.frames[DragonSprite.animation.currentFrame], DragonSprite.position, WHITE);
-        EndDrawing();
+        demoSelected = selectDemo();
+        drawSelectionScreen();
+    }
+    switch( demoSelected )
+    {
+        case ANIMATION_DEMO:
+            showAnimationDemo();
+            break;
+        case MOTION_DEMO:
+            showMotionDemo();
+            break;
+        case TILE_DEMO:
+            showTileDemo();
+            break;
+        case NONE:
+            std::cerr << "this is an error, NONE was selected" << std::endl;
+            // fall through
+        case QUIT:
+            // fall through
+        default:
+            break;
     }
 
     CloseWindow();

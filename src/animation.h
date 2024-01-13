@@ -15,6 +15,8 @@ typedef struct
 {
     Animation_t animation;
     Vector2 position;
+    Vector2 textureOrigin;
+    Vector2 spriteSize;
     Texture2D texture;
 } Sprite_t;
 

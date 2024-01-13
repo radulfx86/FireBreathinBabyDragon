@@ -58,18 +58,29 @@ void loadDefaultCharacters()
         0.0
     },
     {100.0,100.0},
+    {13.0,0.0},
+    {32.0,32.0},
     LoadTexture("images/dragon_0_20240112_01.png")
     };
     VillagerSprite = {
     walk_right,
     {200.0,100.0},
+    {3.0,16.0},
+    {32.0,32.0},
     LoadTexture("images/villagers_20240112_01.png")
     };
     MageSprite = {
-    walk_left,
-    {200.0,100.0},
+    walk_right,
+    {250.0,100.0},
+    {0.0,48.0},
+    {24.0,24.0},
     LoadTexture("images/villagers_20240112_01.png")
     };
+    for ( Rectangle &r : MageSprite.animation.frames )
+    {
+        r.x += MageSprite.textureOrigin.x;
+        r.y += MageSprite.textureOrigin.y;
+    }
 }
 
 void updateAnimation(float delta, Animation_t *animation)
@@ -89,7 +100,14 @@ void drawChar(float delta, Sprite_t *character)
 {
     NULLCHECK(character);
     updateAnimation(delta, &character->animation);
-    DrawTextureRec(character->texture, character->animation.frames[character->animation.currentFrame], character->position, WHITE);
+    Rectangle dest = {character->position.x*2, character->position.y*2,
+                        character->spriteSize.x*2, character->spriteSize.y*2};
+    DrawTexturePro(character->texture,
+        character->animation.frames[character->animation.currentFrame],
+        dest,
+        {0.0,0.0},
+        0.0,
+        WHITE);
 }
 
 void showAnimationDemo()
@@ -108,15 +126,8 @@ void showAnimationDemo()
             std::cout << "FPS: " << 1.0 / delta << "\n";
             ClearBackground(BLACK);
 
-            for(int i = 0; i < 42; ++i )
-            {
-                VillagerSprite.position.x = (i/(screenWidth/16))*16;
-                VillagerSprite.position.y = (i%(screenHeight/16))*16;
-                drawChar(delta, &VillagerSprite);
-                MageSprite.position.x = 8+(i/(screenWidth/16))*16;
-                MageSprite.position.y = 8+(i%(screenHeight/16))*16;
-                drawChar(delta, &MageSprite);
-            }
+            drawChar(delta, &VillagerSprite);
+            drawChar(delta, &MageSprite);
             drawChar(delta, &DragonSprite);
         EndDrawing();
     }

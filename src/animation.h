@@ -20,4 +20,7 @@ typedef struct
     Texture2D texture;
 } Sprite_t;
 
+void updateAnimation(float delta, Animation_t *animation);
+
+void drawChar(float delta, Sprite_t *character);
 #endif // ANIMATION_H

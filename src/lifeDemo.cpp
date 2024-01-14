@@ -1,7 +1,101 @@
 #include "demos.h"
 #include <iostream>
+#include <sstream>
 #include "raylib.h"
 #include "types.h"
+#include "animation.h"
+
+class PlayerState
+{
+public:
+    PlayerState(int HP, int EP) : HP(HP), EP(EP) {}
+    int HP;
+    int EP;
+};
+
+class UI
+{
+public:
+    UI(Vector2 pos, float scale, PlayerState *playerState):
+        pos(pos),
+        scale(scale),
+        playerState(playerState)
+    {
+        this->texture = LoadTexture("images/ui.png");
+        this->lifeSprite = 
+        {
+            // animation
+        {
+            // frameTimes
+            { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 },
+            // framePos
+            {   {0.0,0.0,16.0,16.0},
+                {16.0,0.0,16.0,16.0},
+                {32.0,0.0,16.0,16.0},
+                {48.0,0.0,16.0,16.0},
+                {64.0,0.0,16.0,16.0},
+                {80.0,0.0,16.0,16.0}
+            },
+            0,
+            0.0
+        },
+        // position
+        {0.0,0.0},
+        // texOrigin
+        {0.0,0.0},
+        // sprite size
+        {16.0 * scale,16.0 * scale},
+        this->texture};
+        this->fireSprite = 
+        {
+            // animation
+        {
+            // frameTimes
+            { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 },
+            // framePos
+            {   {0.0,16.0,16.0,16.0},
+                {16.0,16.0,16.0,16.0},
+                {32.0,16.0,16.0,16.0},
+                {48.0,16.0,16.0,16.0},
+                {64.0,16.0,16.0,16.0},
+                {80.0,16.0,16.0,16.0}
+            },
+            0,
+            0.0
+        },
+        // position
+        {100.0,0.0},
+        // texOrigin
+        {0.0,0.0},
+        // sprite size
+        {16.0 * scale,16.0 * scale},
+        this->texture};
+    }
+
+    void draw(float delta)
+    {
+        drawChar(delta, &this->lifeSprite);
+        DrawRectangleRec((Rectangle){40,16,this->playerState->HP, 20}, {172, 50, 50, 255});
+        DrawRectangleLinesEx((Rectangle){40,16,this->playerState->HP, 20}, 2, {75, 22, 22, 255});
+        std::stringstream hpText;
+        hpText << this->playerState->HP;
+        DrawText(hpText.str().c_str(), 42, 2, 30, LIGHTGRAY);
+
+        drawChar(delta, &this->fireSprite);
+        DrawRectangleRec((Rectangle){240,16,this->playerState->EP, 20}, {255, 134, 0, 255});
+        DrawRectangleLinesEx((Rectangle){240,16,this->playerState->EP, 20}, 2, {186, 47, 0, 255});
+        std::stringstream epText;
+        epText << this->playerState->EP;
+        DrawText(epText.str().c_str(), 242, 2, 30, LIGHTGRAY);
+    }
+private:
+    Vector2 pos;
+    float scale;
+    Texture texture;
+    PlayerState *playerState;
+    Sprite_t lifeSprite;
+    Sprite_t fireSprite;
+};
 
 class LifeGrid
 {
@@ -117,11 +211,16 @@ private:
 
 void showLifeDemo()
 {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
-    const float scaleFactor = 4;
-    LifeGrid lifeGrid({10,10}, scaleFactor, new TileMap(LoadTexture("images/tileMap.png"), {16.0,16.0}, {4,4}), {3,0}, {3,2});
+    const int screenWidth = 32 * 24;
+    const int screenHeight = 32 * 20;
+    const float scaleFactor = 2;
+
+    PlayerState playerState(20,30);
+
+    LifeGrid lifeGrid({24,20}, scaleFactor, new TileMap(LoadTexture("images/tileMap.png"), {16.0,16.0}, {4,4}), {3,0}, {3,2});
     lifeGrid.init();
+
+    UI ui({0,0},1.0,&playerState);
 
     SetWindowSize(screenWidth, screenHeight);
     SetWindowTitle("Life Demo");
@@ -139,11 +238,13 @@ void showLifeDemo()
                 sumDelta -= 1.0;
                 frameCnt = 0;
                 lifeGrid.update();
+                playerState.EP = (playerState.EP + 1 ) % 200;
+                playerState.HP = (playerState.HP + 2 ) % 100;
             }
         BeginDrawing();
             ClearBackground(BLACK);
             lifeGrid.draw();
-            
+            ui.draw(delta);
         EndDrawing();
     }
 }

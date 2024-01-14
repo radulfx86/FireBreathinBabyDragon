@@ -12,6 +12,7 @@ int main(void)
     demoList.addEntry("Tiles", showTileDemo);
     demoList.addEntry("Sprite animation", showAnimationDemo);
     demoList.addEntry("Motion", showMotionDemo);
+    demoList.addEntry("Life-Demo", showLifeDemo);
     DemoList::DemoFunPtr_t demoFunction = nullptr;
     while ( (!WindowShouldClose()) && (nullptr == demoFunction ))
     {

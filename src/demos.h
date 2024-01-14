@@ -10,6 +10,8 @@ void showMotionDemo();
 
 void showTileDemo();
 
+void showLifeDemo();
+
 void showGame();
 
 /**

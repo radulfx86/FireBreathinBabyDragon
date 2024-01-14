@@ -1,6 +1,8 @@
 #include "demos.h"
 #include <iostream>
 #include <vector>
+#include <utility>
+#include <algorithm>
 #include "raylib.h"
 
 typedef struct TileMap_t
@@ -8,28 +10,34 @@ typedef struct TileMap_t
     Texture texture;
     Vector2 tileSize;
     Vector2 numTiles;
-    std::vector<Rectangle> sourceCoords;
-    std::vector<Rectangle> targetCoords;
+    std::vector<std::pair<Rectangle, Rectangle>> coords;
 } TileMap_t;
 
 void drawTileMap(TileMap_t *tiles)
 {
     /// dont draw if source and target sizes do not match
     /// TODO find a better solution
-    if ( tiles->sourceCoords.size() != tiles->targetCoords.size() )
-    {
-        return;
-    }
-    for ( int i = 0; i < tiles->sourceCoords.size(); ++i )
+
+    for ( const std::pair<Rectangle,Rectangle>& coords : tiles->coords )
     {
         DrawTexturePro(
             tiles->texture, 
-            tiles->sourceCoords[i],
-            tiles->targetCoords[i],
+            coords.first,
+            coords.second,
             {0.0,0.0},
             0.0,
             WHITE);
     }
+}
+
+void ySort(TileMap_t *tiles)
+{
+    // sort by y-value
+    std::sort(tiles->coords.begin(), tiles->coords.end(),
+        [](std::pair<Rectangle, Rectangle> a, std::pair<Rectangle, Rectangle> b) {
+            return a.second.y < b.second.y;
+        }
+    );
 }
 
 void initBackground(const int screenWidth, const int screenHeight, const float scaleFactor, TileMap_t *background)
@@ -47,17 +55,17 @@ void initBackground(const int screenWidth, const int screenHeight, const float s
         for ( int x = 0; x < numScreenTilesX; ++x )
         {
             /// source rectangle in source-px-coordinates
-            background->sourceCoords.push_back({
+            background->coords.push_back((std::pair<Rectangle, Rectangle>){{
                 3 * background->tileSize.x,
                 1 * background->tileSize.y,
                 background->tileSize.x,
-                background->tileSize.y});
+                background->tileSize.y},
             /// target rectangle in target-px-coordinates (scaled)
-            background->targetCoords.push_back({
+            {
                 x * background->tileSize.x * scaleFactor,
                 y * background->tileSize.y * scaleFactor,
                 background->tileSize.x * scaleFactor,
-                background->tileSize.y * scaleFactor});
+                background->tileSize.y * scaleFactor}});
         }
     }
 }
@@ -67,16 +75,16 @@ void initForeground(const int screenWidth, const int screenHeight, const float s
     foreground->texture = LoadTexture("images/assets.png");
     foreground->tileSize = {16.0, 32.0};
     foreground->numTiles = {10, 5};
-    static const int MAX_ELEMENTS = 42;
+    static const int MAX_ELEMENTS = 100;
     for ( int i = 0; i < MAX_ELEMENTS; ++i )
     {
         float x = GetRandomValue(0, screenWidth - foreground->tileSize.x * scaleFactor);
         float y = GetRandomValue(0, screenHeight - foreground->tileSize.y * scaleFactor);
-        foreground->sourceCoords.push_back({0,(i%(int)foreground->numTiles.y) * foreground->tileSize.y,foreground->tileSize.x, foreground->tileSize.y});
-        foreground->targetCoords.push_back({x,y,foreground->tileSize.x * scaleFactor, foreground->tileSize.y * scaleFactor});
+        foreground->coords.push_back({{0,(i%(int)foreground->numTiles.y) * foreground->tileSize.y,foreground->tileSize.x, foreground->tileSize.y},
+        {x,y,foreground->tileSize.x * scaleFactor, foreground->tileSize.y * scaleFactor}});
     }
-    // TODO: sort by y-value
-    // NOTE: nah, the type with split source/target-coords doesnt sort too well ...
+    // sort by z (in this case y)-coordinate
+    ySort(foreground);
 }
 
 void showTileDemo()

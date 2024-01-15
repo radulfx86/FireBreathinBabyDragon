@@ -10,7 +10,7 @@ initially, go to the build-directory and call "cmake ..". This will download and
 Then build with "make" (while still in the build-directory)
 
 # Setup
-create a path "images" and place the files from the google-drive there directly.
+no further setup necessary. all essential artwork is already in the images directory
 
 # Run
 run from the main directory with build/raylib_playground

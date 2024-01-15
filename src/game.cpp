@@ -36,6 +36,8 @@ private:
 
     void initialize();
 
+    void finalize();
+
     void drawSplashScreen();
 
     void drawLevelScreen();
@@ -47,6 +49,7 @@ private:
     void drawExitScreen();
 
     Sprite_t dragonSprite;
+    Sound fireBreath;
 
     float exitTime;
 };
@@ -76,6 +79,15 @@ void Game::initialize()
 
     SetWindowSize(640, 480);
     SetTargetFPS(10);
+    InitAudioDevice();
+    this->fireBreath = LoadSound("audio/Firebreath_Level_1.mp3");
+}
+
+void Game::finalize()
+{
+    UnloadTexture(this->dragonSprite.texture);
+    UnloadSound(this->fireBreath);
+    CloseAudioDevice();
 }
 
 void Game::drawSplashScreen()
@@ -89,6 +101,7 @@ void Game::drawSplashScreen()
                     this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
         {
             this->state = GameState::LEVEL;
+            PlaySound(this->fireBreath);
         }
         ClearBackground(BLACK);
             DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
@@ -185,6 +198,7 @@ void Game::propagateState()
             SetWindowTitle("See you Space Cowboy");
             break;
         case GameState::DONE:
+            finalize();
             break;
         default:
             break;

@@ -12,6 +12,8 @@ void showTileDemo();
 
 void showLifeDemo();
 
+void showAudioDemo();
+
 void showGame();
 
 /**

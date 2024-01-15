@@ -32,7 +32,8 @@ add_executable(${PROJECT_NAME}
     src/motionDemo.cpp
     src/demos.cpp
     src/game.cpp
-    src/lifeDemo.cpp)
+    src/lifeDemo.cpp
+    src/audioDemo.cpp)
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
 

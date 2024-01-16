@@ -27,13 +27,18 @@ endif()
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/animationDemo.cpp
-    src/tileDemo.cpp
-    src/motionDemo.cpp
-    src/demos.cpp
     src/game.cpp
-    src/lifeDemo.cpp
-    src/audioDemo.cpp)
+    src/demos.cpp
+    src/demos/animationDemo.cpp
+    src/demos/tileDemo.cpp
+    src/demos/motionDemo.cpp
+    src/demos/lifeDemo.cpp
+    src/demos/audioDemo.cpp)
+
+include_directories(src/
+                    src/screens
+                    src/demos)
+
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
 

@@ -70,84 +70,12 @@ private:
     bool isRunning;
 };
 
-class SplashScreen : public GameScreen, public GameState
-{
-public:
-    SplashScreen(Game *game) : GameScreen(game), isDone(false) {}
-    virtual void initialize() override;
 
-    virtual void draw() override;
+#include <iostream>
+#define TRACE \
+do { \
+    std::cerr << __func__ << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+} while(0)
 
-    virtual void finalize() override;
-
-    virtual void enter() override;
-
-    virtual void exit() override;
-
-    virtual void update() override;
-
-    static bool checkDone(GameState *caller)
-    {
-        if ( SplashScreen *me = dynamic_cast<SplashScreen*>(caller) )
-        {
-            return me->isDone;
-        }
-        return false;
-    }
-private:
-    Sprite_t dragonSprite;
-    Sound fireBreath;
-    bool isDone;
-};
-
-class LevelScreen : public GameScreen, public GameState
-{
-public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false) {}
-    virtual void initialize() override;
-
-    virtual void draw() override;
-
-    virtual void finalize() override;
-
-    virtual void enter() override;
-
-    virtual void exit() override;
-
-    virtual void update() override;
-
-    static bool checkDone(GameState *caller)
-    {
-        if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
-        {
-            return me->isDone;
-        }
-        return false;
-    }
-private:
-    Sprite_t dragonSprite;
-    Sound fireBreath;
-    bool isDone;
-};
-
-class ExitScreen : public GameScreen, public GameState
-{
-public:
-    ExitScreen(float exitTime, Game *game) : GameScreen(game), exitTime(exitTime) {}
-    virtual void initialize() override;
-
-    virtual void draw() override;
-
-    virtual void finalize() override;
-
-    virtual void enter() override;
-
-    virtual void exit() override;
-
-    virtual void update() override;
-
-private:
-    float exitTime;
-};
 
 #endif // GAME_H

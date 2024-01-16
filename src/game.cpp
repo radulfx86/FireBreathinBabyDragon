@@ -1,61 +1,39 @@
 #include "demos.h"
 #include <iostream>
 #include <sstream>
+#include <map>
 #include "animation.h"
+#include "game.h"
 
-#define TRACE ;
-#if 0
-\
+#define TRACE \
 do { \
     std::cerr << __func__ << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
 } while(0)
-#endif
 
-class Game
-{
-public:
-    using GameState = enum {NONE = 0,
-                            INITIALIZED = 1,
-                            SPLASH = 2,
-                            LEVEL = 3,
-                            MENU = 4,
-                            GAMEOVER = 5,
-                            EXIT = 6,
-                            DONE = 7};
-    Game() : state(GameState::NONE), exitTime(3.0f) {TRACE;}
-    ~Game() = default;
-
-    void run();
-
-    void propagateState();
-
-    void drawScreen();
-
-private:
-    GameState state;
-
-    void initialize();
-
-    void finalize();
-
-    void drawSplashScreen();
-
-    void drawLevelScreen();
-
-    void drawMenuScreen();
-
-    void drawGameoverScreen();
-
-    void drawExitScreen();
-
-    Sprite_t dragonSprite;
-    Sound fireBreath;
-
-    float exitTime;
-};
 
 void Game::initialize()
 {
+    TRACE;
+    this->screens[GameState::SPLASH] = new SplashScreen(this);
+    this->screens[GameState::LEVEL] = new LevelScreen(this);
+    this->screens[GameState::EXIT] = new ExitScreen(3.0, this);
+    for ( auto screen : this->screens )
+    {
+        screen.second->initialize();
+    }
+
+}
+
+void Game::finalize()
+{
+    TRACE;
+    CloseAudioDevice();
+}
+
+
+void SplashScreen::initialize()
+{
+    TRACE;
     this->dragonSprite = {
     // animation
     {
@@ -78,19 +56,29 @@ void Game::initialize()
     };
 
     SetWindowSize(640, 480);
-    SetTargetFPS(10);
+    SetTargetFPS(60);
     InitAudioDevice();
     this->fireBreath = LoadSound("audio/Firebreath_Level_1.mp3");
-}
 
-void Game::finalize()
+}
+void SplashScreen::finalize()
 {
+    TRACE;
     UnloadTexture(this->dragonSprite.texture);
     UnloadSound(this->fireBreath);
-    CloseAudioDevice();
-}
 
-void Game::drawSplashScreen()
+}
+void SplashScreen::enter()
+{
+    TRACE;
+    SetWindowTitle("START THE GAME");
+}
+void SplashScreen::exit()
+{
+    TRACE;
+
+}
+void SplashScreen::draw()
 {
     TRACE;
     BeginDrawing();
@@ -100,7 +88,8 @@ void Game::drawSplashScreen()
                     {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
                     this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
         {
-            this->state = GameState::LEVEL;
+            /// TODO this is NOT the way to do such stuff !!!
+            this->game->state = GameState::LEVEL;
             PlaySound(this->fireBreath);
         }
         ClearBackground(BLACK);
@@ -113,7 +102,54 @@ void Game::drawSplashScreen()
 
 }
 
-void Game::drawLevelScreen()
+void LevelScreen::initialize()
+{
+    TRACE;
+    this->dragonSprite = {
+    // animation
+    {
+        // frameTimes
+        { 0.2, 0.2, 0.2, 0.2, 0.2 },
+        // framePos
+        {   {0.0,0.0,32.0,32.0},
+            {32.0,0.0,32.0,32.0},
+            {64.0,0.0,32.0,32.0},
+            {96.0,0.0,32.0,32.0},
+            {128.0,0.0,32.0,32.0}
+        },
+        0,
+        0.0
+    },
+    {100.0,100.0},
+    {13.0,0.0},
+    {32.0,32.0},
+    LoadTexture("images/dragon_0_20240112_01.png")
+    };
+
+    SetWindowSize(640, 480);
+    SetTargetFPS(60);
+    InitAudioDevice();
+    this->fireBreath = LoadSound("audio/Firebreath_Level_1.mp3");
+
+}
+void LevelScreen::finalize()
+{
+    TRACE;
+    UnloadTexture(this->dragonSprite.texture);
+    UnloadSound(this->fireBreath);
+
+}
+void LevelScreen::enter()
+{
+    TRACE;
+    SetWindowTitle("LEVEL 1");
+
+}
+void LevelScreen::exit()
+{
+    TRACE;
+}
+void LevelScreen::draw()
 {
     TRACE;
     BeginDrawing();
@@ -123,7 +159,8 @@ void Game::drawLevelScreen()
                     {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
                     this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
         {
-            this->state = GameState::EXIT;
+            /// TODO this is NOT the way to do such stuff !!!
+            this->game->state = GameState::EXIT;
         }
         ClearBackground(GREEN);
             DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
@@ -136,19 +173,28 @@ void Game::drawLevelScreen()
 
 }
 
-void Game::drawMenuScreen()
+void ExitScreen::initialize()
 {
     TRACE;
 
 }
-
-void Game::drawGameoverScreen()
+void ExitScreen::finalize()
 {
     TRACE;
 
 }
+void ExitScreen::enter()
+{
+    TRACE;
+    SetWindowTitle("See you Space Cowboy");
 
-void Game::drawExitScreen()
+}
+void ExitScreen::exit()
+{
+    TRACE;
+
+}
+void ExitScreen::draw()
 {
     TRACE;
     BeginDrawing();
@@ -162,11 +208,12 @@ void Game::drawExitScreen()
         exitTime -= delta;
         if ( exitTime < 0.0f )
         {
-            this->state = GameState::DONE;
+            this->game->state = GameState::DONE;
         }
 
     EndDrawing();
 }
+
 
 void Game::propagateState()
 {
@@ -176,61 +223,41 @@ void Game::propagateState()
         this->state = DONE;
         return;
     }
-    switch( this->state )
+    GameState oldState = this->oldState;
+    GameState newState = this->state;
+    if ( oldState != newState )
     {
-        case GameState::NONE:
-            initialize();
-            this->state = GameState::INITIALIZED;
-            SetWindowTitle("START THE GAME");
-            break;
-        case GameState::INITIALIZED:
-        // fall through
-        case GameState::SPLASH:
-            break;
-        case GameState::LEVEL:
-            SetWindowTitle("LEVEL 1");
-            break;
-        case GameState::MENU:
-            break;
-        case GameState::GAMEOVER:
-            break;
-        case GameState::EXIT:
-            SetWindowTitle("See you Space Cowboy");
-            break;
-        case GameState::DONE:
-            finalize();
-            break;
-        default:
-            break;
+        if ( this->screens.count(oldState) )
+        {
+            this->screens[oldState]->exit();
+        }
+        if ( this->screens.count(newState) )
+        {
+            this->screens[newState]->enter();
+        }
     }
+    if ( this->state == GameState::NONE )
+    {
+        initialize();
+        this->state = GameState::INITIALIZED;
+    }
+    if ( this->state == GameState::INITIALIZED )
+    {
+        this->state = GameState::SPLASH;
+    }
+    if ( this->state == GameState::DONE )
+    {
+        finalize();
+    }
+    this->oldState = this->state;
 }
 
 void Game::drawScreen()
 {
     TRACE;
-    switch( this->state )
+    if ( this->screens.count(this->oldState) )
     {
-        case GameState::NONE:
-        // fall through
-        case GameState::INITIALIZED:
-        // fall through
-        case GameState::SPLASH:
-            drawSplashScreen();
-            break;
-        case GameState::LEVEL:
-            drawLevelScreen();
-            break;
-        case GameState::MENU:
-            drawMenuScreen();
-            break;
-        case GameState::GAMEOVER:
-            drawGameoverScreen();
-            break;
-        case GameState::EXIT:
-            drawExitScreen();
-            break;
-        default:
-            break;
+        this->screens[oldState]->draw();
     }
 }
 

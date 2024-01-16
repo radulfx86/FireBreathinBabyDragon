@@ -44,7 +44,7 @@ public:
         // texOrigin
         {0.0,0.0},
         // sprite size
-        {16.0 * scale,16.0 * scale},
+        {16.0f * scale, 16.0f * scale},
         this->texture};
         this->fireSprite = 
         {
@@ -68,22 +68,22 @@ public:
         // texOrigin
         {0.0,0.0},
         // sprite size
-        {16.0 * scale,16.0 * scale},
+        {16.0f * scale, 16.0f * scale},
         this->texture};
     }
 
     void draw(float delta)
     {
         drawChar(delta, &this->lifeSprite);
-        DrawRectangleRec((Rectangle){40,16,this->playerState->HP, 20}, {172, 50, 50, 255});
-        DrawRectangleLinesEx((Rectangle){40,16,this->playerState->HP, 20}, 2, {75, 22, 22, 255});
+        DrawRectangleRec((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, {172, 50, 50, 255});
+        DrawRectangleLinesEx((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, 2, {75, 22, 22, 255});
         std::stringstream hpText;
         hpText << this->playerState->HP;
         DrawText(hpText.str().c_str(), 42, 2, 30, LIGHTGRAY);
 
         drawChar(delta, &this->fireSprite);
-        DrawRectangleRec((Rectangle){240,16,this->playerState->EP, 20}, {255, 134, 0, 255});
-        DrawRectangleLinesEx((Rectangle){240,16,this->playerState->EP, 20}, 2, {186, 47, 0, 255});
+        DrawRectangleRec((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, {255, 134, 0, 255});
+        DrawRectangleLinesEx((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, 2, {186, 47, 0, 255});
         std::stringstream epText;
         epText << this->playerState->EP;
         DrawText(epText.str().c_str(), 242, 2, 30, LIGHTGRAY);

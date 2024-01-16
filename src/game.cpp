@@ -14,19 +14,41 @@ do { \
 void Game::initialize()
 {
     TRACE;
-    this->screens[GameState::SPLASH] = new SplashScreen(this);
-    this->screens[GameState::LEVEL] = new LevelScreen(this);
-    this->screens[GameState::EXIT] = new ExitScreen(3.0, this);
-    for ( auto screen : this->screens )
+    SplashScreen *splashScreen = new SplashScreen(this);
+    LevelScreen *levelScreen = new LevelScreen(this);
+    ExitScreen *exitScreen = new ExitScreen(3.0, this);
+    this->states.push_back(splashScreen);
+    this->states.push_back(levelScreen);
+    this->states.push_back(exitScreen);
+    this->transitions.push_back(Transition(splashScreen, levelScreen, SplashScreen::checkDone));
+    this->transitions.push_back(Transition(levelScreen, exitScreen, levelScreen->checkDone));
+    for ( auto state : this->states )
     {
-        screen.second->initialize();
+        if ( GameScreen *screen = dynamic_cast<GameScreen*>(state) )
+        {
+            screen->initialize();
+        }
     }
+    this->state = splashScreen;
+    this->isRunning = true;
+}
 
+void Game::stop()
+{
+    TRACE;
+    this->isRunning = false;
 }
 
 void Game::finalize()
 {
     TRACE;
+    for ( auto state : this->states )
+    {
+        if ( GameScreen *screen = dynamic_cast<GameScreen*>(state) )
+        {
+            screen->finalize();
+        }
+    }
     CloseAudioDevice();
 }
 
@@ -78,6 +100,10 @@ void SplashScreen::exit()
     TRACE;
 
 }
+void SplashScreen::update()
+{
+    this->draw();
+}
 void SplashScreen::draw()
 {
     TRACE;
@@ -89,7 +115,7 @@ void SplashScreen::draw()
                     this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
         {
             /// TODO this is NOT the way to do such stuff !!!
-            this->game->state = GameState::LEVEL;
+            this->isDone = true;
             PlaySound(this->fireBreath);
         }
         ClearBackground(BLACK);
@@ -149,19 +175,25 @@ void LevelScreen::exit()
 {
     TRACE;
 }
+
+void LevelScreen::update()
+{
+    TRACE;
+    this->draw();
+    if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+            && CheckCollisionPointRec(GetMousePosition(),
+                {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
+                this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
+    {
+        this->isDone = true;
+    }
+}
+
 void LevelScreen::draw()
 {
     TRACE;
     BeginDrawing();
         float delta = GetFrameTime();
-        if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-                && CheckCollisionPointRec(GetMousePosition(),
-                    {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
-                    this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
-        {
-            /// TODO this is NOT the way to do such stuff !!!
-            this->game->state = GameState::EXIT;
-        }
         ClearBackground(GREEN);
             DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
                     this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}, 1.0, RED);
@@ -194,6 +226,12 @@ void ExitScreen::exit()
     TRACE;
 
 }
+
+void ExitScreen::update()
+{
+    this->draw();
+}
+
 void ExitScreen::draw()
 {
     TRACE;
@@ -208,7 +246,7 @@ void ExitScreen::draw()
         exitTime -= delta;
         if ( exitTime < 0.0f )
         {
-            this->game->state = GameState::DONE;
+            this->game->stop();
         }
 
     EndDrawing();
@@ -218,57 +256,42 @@ void ExitScreen::draw()
 void Game::propagateState()
 {
     TRACE;
+    GameState *newState = this->state;
+    for ( Transition &transition : this->transitions )
+    {
+        if ( transition.source != this->state )
+        {
+            continue;
+        }
+        if ( transition.isApplicable(this->state) )
+        {
+            newState = transition.target;
+            break;
+        }
+    }
+    if ( state != newState )
+    {
+        state->exit();
+        newState->enter();
+        state = newState;
+    }
+    /// TODO not sure this is necessary
     if ( WindowShouldClose() )
     {
-        this->state = DONE;
-        return;
-    }
-    GameState oldState = this->oldState;
-    GameState newState = this->state;
-    if ( oldState != newState )
-    {
-        if ( this->screens.count(oldState) )
-        {
-            this->screens[oldState]->exit();
-        }
-        if ( this->screens.count(newState) )
-        {
-            this->screens[newState]->enter();
-        }
-    }
-    if ( this->state == GameState::NONE )
-    {
-        initialize();
-        this->state = GameState::INITIALIZED;
-    }
-    if ( this->state == GameState::INITIALIZED )
-    {
-        this->state = GameState::SPLASH;
-    }
-    if ( this->state == GameState::DONE )
-    {
-        finalize();
-    }
-    this->oldState = this->state;
-}
-
-void Game::drawScreen()
-{
-    TRACE;
-    if ( this->screens.count(this->oldState) )
-    {
-        this->screens[oldState]->draw();
+        this->isRunning = false;
     }
 }
 
 void Game::run()
 {
+    initialize();
     TRACE;
-    while ( this->state < GameState::DONE )
+    while ( this->isRunning )
     {
-        propagateState();
-        drawScreen();
+        this->propagateState();
+        this->state->update();
     }
+    finalize();
 }
 
 void showGame()

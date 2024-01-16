@@ -1,4 +1,5 @@
 #include "splashScreen.h"
+#include "datastore.h"
 
 void SplashScreen::initialize()
 {
@@ -21,21 +22,18 @@ void SplashScreen::initialize()
     {100.0,100.0},
     {13.0,0.0},
     {32.0,32.0},
-    LoadTexture("images/dragon_0_20240112_01.png")
+    Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
     };
 
     SetWindowSize(640, 480);
     SetTargetFPS(60);
     InitAudioDevice();
-    this->fireBreath = LoadSound("audio/Firebreath_Level_1.mp3");
+    this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
 }
 void SplashScreen::finalize()
 {
     TRACE;
-    UnloadTexture(this->dragonSprite.texture);
-    UnloadSound(this->fireBreath);
-
 }
 void SplashScreen::enter()
 {
@@ -47,15 +45,14 @@ void SplashScreen::exit()
     TRACE;
 
 }
-void SplashScreen::update()
+void SplashScreen::update(float delta)
 {
-    this->draw();
+    this->draw(delta);
 }
-void SplashScreen::draw()
+void SplashScreen::draw(float delta)
 {
     TRACE;
     BeginDrawing();
-        float delta = GetFrameTime();
         if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
                 && CheckCollisionPointRec(GetMousePosition(),
                     {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,

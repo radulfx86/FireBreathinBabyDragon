@@ -11,7 +11,7 @@ class GameState
 public:
     virtual void enter() = 0;
     virtual void exit() = 0;
-    virtual void update() = 0;
+    virtual void update(float delta) = 0;
 };
 
 class Transition
@@ -37,7 +37,7 @@ public:
 
     virtual void initialize() = 0;
 
-    virtual void draw() = 0;
+    virtual void draw(float delta) = 0;
 
     virtual void finalize() = 0;
 protected:
@@ -72,10 +72,13 @@ private:
 
 
 #include <iostream>
-#define TRACE \
+#define TRACE ;
+#if 0
 do { \
     std::cerr << __func__ << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
 } while(0)
+
+#endif
 
 
 #endif // GAME_H

@@ -23,16 +23,15 @@ void ExitScreen::exit()
 
 }
 
-void ExitScreen::update()
+void ExitScreen::update(float delta)
 {
-    this->draw();
+    this->draw(delta);
 }
 
-void ExitScreen::draw()
+void ExitScreen::draw(float delta)
 {
     TRACE;
     BeginDrawing();
-        float delta = GetFrameTime();
         
         ClearBackground(DARKGRAY);
         std::stringstream exitText;

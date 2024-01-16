@@ -8,7 +8,7 @@ public:
     ExitScreen(float exitTime, Game *game) : GameScreen(game), exitTime(exitTime) {}
     virtual void initialize() override;
 
-    virtual void draw() override;
+    virtual void draw(float delta) override;
 
     virtual void finalize() override;
 
@@ -16,7 +16,7 @@ public:
 
     virtual void exit() override;
 
-    virtual void update() override;
+    virtual void update(float delta) override;
 
 private:
     float exitTime;

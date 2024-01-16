@@ -2,19 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <utility>
-#include <algorithm>
 #include "raylib.h"
 #include "types.h"
 
-void ySort(TileMap *tiles)
-{
-    // sort by y-value
-    std::sort(tiles->coords.begin(), tiles->coords.end(),
-        [](std::pair<Rectangle, Rectangle> a, std::pair<Rectangle, Rectangle> b) {
-            return a.second.y < b.second.y;
-        }
-    );
-}
 
 void initBackground(const int screenWidth, const int screenHeight, const float scaleFactor, TileMap *background)
 {
@@ -22,28 +12,8 @@ void initBackground(const int screenWidth, const int screenHeight, const float s
     background->tileSize = {16.0, 16.0};
     background->numTiles = {4, 4};
 
-    const int numScreenTilesX = screenWidth / (background->tileSize.x * scaleFactor);
-    const int numScreenTilesY = screenHeight / (background->tileSize.y * scaleFactor);
+    TileMap::initBackground(background, {static_cast<float>(screenWidth), static_cast<float>(screenHeight)}, scaleFactor, {3.0f, 1.0f});
 
-    /// initialize a tile map for the screen
-    for ( int y = 0; y < numScreenTilesY; ++y )
-    {
-        for ( int x = 0; x < numScreenTilesX; ++x )
-        {
-            /// source rectangle in source-px-coordinates
-            background->coords.push_back((std::pair<Rectangle, Rectangle>){{
-                3 * background->tileSize.x,
-                1 * background->tileSize.y,
-                background->tileSize.x,
-                background->tileSize.y},
-            /// target rectangle in target-px-coordinates (scaled)
-            {
-                x * background->tileSize.x * scaleFactor,
-                y * background->tileSize.y * scaleFactor,
-                background->tileSize.x * scaleFactor,
-                background->tileSize.y * scaleFactor}});
-        }
-    }
 }
 
 void initForeground(const int screenWidth, const int screenHeight, const float scaleFactor, TileMap *foreground)
@@ -60,7 +30,7 @@ void initForeground(const int screenWidth, const int screenHeight, const float s
         {x,y,foreground->tileSize.x * scaleFactor, foreground->tileSize.y * scaleFactor}});
     }
     // sort by z (in this case y)-coordinate
-    ySort(foreground);
+    foreground->ySort();
 }
 
 void showTileDemo()

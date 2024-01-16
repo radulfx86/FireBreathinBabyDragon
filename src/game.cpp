@@ -4,9 +4,9 @@
 #include <map>
 #include "animation.h"
 #include "game.h"
-#include "splashScreen.cpp"
-#include "levelScreen.cpp"
-#include "exitScreen.cpp"
+#include "splashScreen.h"
+#include "levelScreen.h"
+#include "exitScreen.h"
 
 
 void Game::initialize()
@@ -86,7 +86,7 @@ void Game::run()
     while ( this->isRunning )
     {
         this->propagateState();
-        this->state->update();
+        this->state->update(GetFrameTime());
     }
     finalize();
 }

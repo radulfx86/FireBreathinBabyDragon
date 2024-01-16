@@ -33,10 +33,15 @@ add_executable(${PROJECT_NAME}
     src/demos/tileDemo.cpp
     src/demos/motionDemo.cpp
     src/demos/lifeDemo.cpp
-    src/demos/audioDemo.cpp)
+    src/demos/audioDemo.cpp
+    src/screens/splashScreen.cpp
+    src/screens/levelScreen.cpp
+    src/screens/exitScreen.cpp
+    src/utils/datastore.cpp)
 
 include_directories(src/
                     src/screens
+                    src/utils
                     src/demos)
 
 #set(raylib_VERBOSE 1)

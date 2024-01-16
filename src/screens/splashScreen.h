@@ -9,7 +9,7 @@ public:
     virtual ~SplashScreen() = default;
     virtual void initialize() override;
 
-    virtual void draw() override;
+    virtual void draw(float delta) override;
 
     virtual void finalize() override;
 
@@ -17,7 +17,7 @@ public:
 
     virtual void exit() override;
 
-    virtual void update() override;
+    virtual void update(float delta) override;
 
     static bool checkDone(GameState *caller)
     {

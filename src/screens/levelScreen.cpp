@@ -56,6 +56,10 @@ void LevelScreen::loadCharacters()
     Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
     };
 
+    this->charSpeedMax = 200.0;
+    this->charSpeed = {100.0f, 0.0f};
+    this->charAcc = 100.0;
+
     InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
@@ -120,6 +124,83 @@ void LevelScreen::exit()
     TRACE;
 }
 
+void LevelScreen::movePlayer(float delta)
+{
+    Vector2 spdDelta = {0.0f,0.0f};
+    if ( IsKeyDown(KEY_W) ) // move up
+    {
+        spdDelta.y -= delta * this->charAcc;
+    }
+    else
+    {
+        if ( this->charSpeed.y < 0.0 )
+        {
+            spdDelta.y += delta * this->charAcc;
+        }
+    }
+    if ( IsKeyDown(KEY_A) ) // move left
+    {
+        spdDelta.x -= delta * this->charAcc;
+    }
+    else
+    {
+        if ( this->charSpeed.x < 0.0 )
+        {
+            spdDelta.x += delta * this->charAcc;
+        }
+    }
+    if ( IsKeyDown(KEY_S) ) // move down
+    {
+        spdDelta.y += delta * this->charAcc;
+    }
+    else
+    {
+        if ( this->charSpeed.y > 0.0 )
+        {
+            spdDelta.y -= delta * this->charAcc;
+        }
+    }
+    if ( IsKeyDown(KEY_D) ) // move right
+    {
+        spdDelta.x += delta * this->charAcc;
+    }
+    else
+    {
+        if ( this->charSpeed.x > 0.0 )
+        {
+            spdDelta.x -= delta * this->charAcc;
+        }
+    }
+    /// NOTE: WARNING, unchecked addition - no collision-check against anything, even level boundaries
+    this->charSpeed.x += spdDelta.x;
+    this->charSpeed.y += spdDelta.y;
+    if ( this->charSpeed.x > this->charSpeedMax )
+    {
+        this->charSpeed.x = this->charSpeedMax;
+    }
+    if ( this->charSpeed.y > this->charSpeedMax )
+    {
+        this->charSpeed.y = this->charSpeedMax;
+    }
+    if ( this->charSpeed.x < -this->charSpeedMax )
+    {
+        this->charSpeed.x = -this->charSpeedMax;
+    }
+    if ( this->charSpeed.y < -this->charSpeedMax )
+    {
+        this->charSpeed.y = -this->charSpeedMax;
+    }
+
+    if ( fabs(this->charSpeed.x) > 1.0f )
+    {
+        this->dragonSprite.position.x += this->charSpeed.x * delta;
+    }
+    if ( fabs(this->charSpeed.y) > 1.0f )
+    {
+        this->dragonSprite.position.y += this->charSpeed.y * delta;
+    }
+}
+
 void LevelScreen::update(float delta)
 {
     TRACE;
@@ -142,6 +223,9 @@ void LevelScreen::update(float delta)
         scaleStr << "scale: " << this->scale;
         this->infoScreen->scaleText = scaleStr.str();
     }
+    movePlayer(delta);
+
+
     this->draw(delta);
     this->infoScreen->draw(delta);
 }

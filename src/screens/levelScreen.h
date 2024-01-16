@@ -44,6 +44,9 @@ public:
     }
 private:
     Sprite_t dragonSprite;
+    Vector2 charSpeed;
+    float charSpeedMax;
+    float charAcc;
     Sound fireBreath;
     bool isDone;
     float scale;
@@ -51,6 +54,7 @@ private:
     InfoScreen *infoScreen;
     void loadCharacters();
     void loadTiles();
+    void movePlayer(float delta);
     Camera2D camera;
 };
 

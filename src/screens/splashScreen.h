@@ -29,7 +29,7 @@ public:
     }
 private:
     Sprite_t dragonSprite;
-    Sound fireBreath;
+    Sound mainTheme;
     bool isDone;
 };
 #endif // SPLASH_SCREEN_H

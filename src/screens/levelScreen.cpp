@@ -210,6 +210,7 @@ void LevelScreen::update(float delta)
                 this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
     {
         this->isDone = true;
+        PlaySound(this->fireBreath);
     }
     float zoomDelta = GetMouseWheelMove();
     if ( zoomDelta != 0.0 )

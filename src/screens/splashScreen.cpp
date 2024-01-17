@@ -28,7 +28,7 @@ void SplashScreen::initialize()
     SetWindowSize(640, 480);
     SetTargetFPS(60);
     InitAudioDevice();
-    this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
+    this->mainTheme = Datastore::getInstance().getSound("audio/Main_Theme_Lute.mp3");
 
 }
 void SplashScreen::finalize()
@@ -42,11 +42,21 @@ void SplashScreen::enter()
 }
 void SplashScreen::exit()
 {
+    /// quick hack - asynchronous looping would be better
+    if ( IsSoundPlaying(this->mainTheme))
+    {
+        StopSound(this->mainTheme);
+    } 
     TRACE;
 
 }
 void SplashScreen::update(float delta)
 {
+    /// quick hack - asynchronous looping would be better
+    if ( !IsSoundPlaying(this->mainTheme))
+    {
+        PlaySound(this->mainTheme);
+    }
     this->draw(delta);
 }
 void SplashScreen::draw(float delta)
@@ -60,7 +70,6 @@ void SplashScreen::draw(float delta)
         {
             /// TODO this is NOT the way to do such stuff !!!
             this->isDone = true;
-            PlaySound(this->fireBreath);
         }
         ClearBackground(BLACK);
             DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,

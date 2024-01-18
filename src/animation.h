@@ -2,7 +2,10 @@
 #define ANIMATION_H
 #include <vector>
 #include "raylib.h"
-
+#include "character.h"
+using Animation_t = Animation;
+using Sprite_t = Sprite;
+#if 0
 typedef struct
 {
     std::vector<float> frameTimes;
@@ -23,4 +26,9 @@ typedef struct
 void updateAnimation(float delta, Animation_t *animation);
 
 void drawChar(float delta, Sprite_t *character);
+#endif
+extern Animation walkLeftNPC;
+extern Animation walkRightNPC;
+extern Animation idleDragon;
+
 #endif // ANIMATION_H

@@ -29,6 +29,7 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/game.cpp
     src/demos.cpp
+    src/character/character.cpp
     src/demos/animationDemo.cpp
     src/demos/tileDemo.cpp
     src/demos/motionDemo.cpp
@@ -42,6 +43,7 @@ add_executable(${PROJECT_NAME}
 include_directories(src/
                     src/screens
                     src/utils
+                    src/character
                     src/demos)
 
 #set(raylib_VERBOSE 1)

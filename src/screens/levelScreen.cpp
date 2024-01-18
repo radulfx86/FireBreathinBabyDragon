@@ -35,26 +35,12 @@ void InfoScreen::setNumTiles(int numTiles)
 
 void LevelScreen::loadCharacters()
 {
-    this->dragonSprite = {
-    // animation
-    {
-        // frameTimes
-        { 0.2, 0.2, 0.2, 0.2, 0.2 },
-        // framePos
-        {   {0.0,0.0,32.0,32.0},
-            {32.0,0.0,32.0,32.0},
-            {64.0,0.0,32.0,32.0},
-            {96.0,0.0,32.0,32.0},
-            {128.0,0.0,32.0,32.0}
-        },
-        0,
-        0.0
-    },
-    {100.0,100.0},
-    {13.0,0.0},
-    {32.0,32.0},
-    Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
-    };
+    this->dragonSprite = new Sprite(&idleDragon,
+        {100.0,100.0},
+        {13.0,0.0},
+        {32.0,32.0},
+        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
+    );
 
     this->charSpeedMax = 200.0;
     this->charSpeed = {100.0f, 0.0f};
@@ -75,7 +61,7 @@ void LevelScreen::loadTiles()
     {
         for ( int x = 0; x < tilesX; ++x )
         {
-    Vector2 defaultTile = {x%4,y%4};
+    Vector2 defaultTile = {(float)(x%4),(float)(y%4)};
             /// source rectangle in source-px-coordinates
             this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
                 defaultTile.x * this->tiles.tileSize.x,
@@ -193,11 +179,11 @@ void LevelScreen::movePlayer(float delta)
 
     if ( fabs(this->charSpeed.x) > 1.0f )
     {
-        this->dragonSprite.position.x += this->charSpeed.x * delta;
+        this->dragonSprite->position.x += this->charSpeed.x * delta;
     }
     if ( fabs(this->charSpeed.y) > 1.0f )
     {
-        this->dragonSprite.position.y += this->charSpeed.y * delta;
+        this->dragonSprite->position.y += this->charSpeed.y * delta;
     }
 }
 
@@ -206,8 +192,8 @@ void LevelScreen::update(float delta)
     TRACE;
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
             && CheckCollisionPointRec(GetMousePosition(),
-                {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
-                this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
+                {this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
+                this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}) )
     {
         this->isDone = true;
         PlaySound(this->fireBreath);
@@ -236,15 +222,15 @@ void LevelScreen::draw(float delta)
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);
-            DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
-                    this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}, 1.0, RED);
+            DrawRectangleLinesEx({this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
+                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}, 1.0, RED);
             DrawText("this is the LEVEL", 100,100,30,ORANGE);
             DrawText("click on the dragon to exit", 100,300,30,ORANGE);
 
         int numTiles = this->tiles.draw();
         infoScreen->setNumTiles(numTiles);
 
-        drawChar(delta, &dragonSprite);
+        dragonSprite->draw(delta);
     EndDrawing();
 
 }

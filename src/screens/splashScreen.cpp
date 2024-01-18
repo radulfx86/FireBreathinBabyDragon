@@ -4,26 +4,12 @@
 void SplashScreen::initialize()
 {
     TRACE;
-    this->dragonSprite = {
-    // animation
-    {
-        // frameTimes
-        { 0.2, 0.2, 0.2, 0.2, 0.2 },
-        // framePos
-        {   {0.0,0.0,32.0,32.0},
-            {32.0,0.0,32.0,32.0},
-            {64.0,0.0,32.0,32.0},
-            {96.0,0.0,32.0,32.0},
-            {128.0,0.0,32.0,32.0}
-        },
-        0,
-        0.0
-    },
-    {100.0,100.0},
-    {13.0,0.0},
-    {32.0,32.0},
-    Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
-    };
+    this->dragonSprite = new Sprite(&idleDragon,
+        {100.0,100.0},
+        {13.0,0.0},
+        {32.0,32.0},
+        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
+    );
 
     SetWindowSize(640, 480);
     SetTargetFPS(60);
@@ -53,7 +39,7 @@ void SplashScreen::exit()
 void SplashScreen::update(float delta)
 {
     /// quick hack - asynchronous looping would be better
-    if ( !IsSoundPlaying(this->mainTheme))
+    if ( IsSoundReady(this->mainTheme) && (!IsSoundPlaying(this->mainTheme)))
     {
         PlaySound(this->mainTheme);
     }
@@ -65,18 +51,18 @@ void SplashScreen::draw(float delta)
     BeginDrawing();
         if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
                 && CheckCollisionPointRec(GetMousePosition(),
-                    {this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
-                    this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}) )
+                    {this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
+                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}) )
         {
             /// TODO this is NOT the way to do such stuff !!!
             this->isDone = true;
         }
         ClearBackground(BLACK);
-            DrawRectangleLinesEx({this->dragonSprite.position.x * 2, this->dragonSprite.position.y * 2,
-                    this->dragonSprite.spriteSize.x * 2, this->dragonSprite.spriteSize.y * 2}, 1.0, RED);
+            DrawRectangleLinesEx({this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
+                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}, 1.0, RED);
             DrawText("click on dragon to start level", 100,100,30,ORANGE);
 
-        drawChar(delta, &dragonSprite);
+        dragonSprite->draw(delta);
     EndDrawing();
 
 }

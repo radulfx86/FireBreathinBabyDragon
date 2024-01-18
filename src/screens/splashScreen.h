@@ -28,7 +28,7 @@ public:
         return false;
     }
 private:
-    Sprite_t dragonSprite;
+    Sprite_t *dragonSprite;
     Sound mainTheme;
     bool isDone;
 };

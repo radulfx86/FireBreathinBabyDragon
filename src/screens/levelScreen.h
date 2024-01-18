@@ -43,7 +43,7 @@ public:
         return false;
     }
 private:
-    Sprite_t dragonSprite;
+    Sprite_t *dragonSprite;
     Vector2 charSpeed;
     float charSpeedMax;
     float charAcc;

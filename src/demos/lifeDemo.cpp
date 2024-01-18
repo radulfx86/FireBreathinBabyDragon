@@ -22,66 +22,52 @@ public:
         playerState(playerState)
     {
         this->texture = LoadTexture("images/ui.png");
-        this->lifeSprite = 
-        {
-            // animation
-        {
-            // frameTimes
-            { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 },
-            // framePos
-            {   {0.0,0.0,16.0,16.0},
-                {16.0,0.0,16.0,16.0},
-                {32.0,0.0,16.0,16.0},
-                {48.0,0.0,16.0,16.0},
-                {64.0,0.0,16.0,16.0},
-                {80.0,0.0,16.0,16.0}
-            },
-            0,
-            0.0
-        },
-        // position
-        {0.0,0.0},
-        // texOrigin
-        {0.0,0.0},
-        // sprite size
-        {16.0f * scale, 16.0f * scale},
-        this->texture};
-        this->fireSprite = 
-        {
-            // animation
-        {
-            // frameTimes
-            { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 },
-            // framePos
-            {   {0.0,16.0,16.0,16.0},
-                {16.0,16.0,16.0,16.0},
-                {32.0,16.0,16.0,16.0},
-                {48.0,16.0,16.0,16.0},
-                {64.0,16.0,16.0,16.0},
-                {80.0,16.0,16.0,16.0}
-            },
-            0,
-            0.0
-        },
-        // position
-        {100.0,0.0},
-        // texOrigin
-        {0.0,0.0},
-        // sprite size
-        {16.0f * scale, 16.0f * scale},
-        this->texture};
+        this->lifeSprite = new Sprite(
+            new Animation(
+            {   {0.2, {0.0,0.0,16.0,16.0}},
+                {0.2, {16.0,0.0,16.0,16.0}},
+                {0.2, {32.0,0.0,16.0,16.0}},
+                {0.2, {48.0,0.0,16.0,16.0}},
+                {0.2, {64.0,0.0,16.0,16.0}},
+                {0.2, {80.0,0.0,16.0,16.0}}
+                 
+            }),
+            // position
+            {0.0,0.0},
+            // texOrigin
+            {0.0,0.0},
+            // sprite size
+            {16.0f * scale, 16.0f * scale},
+            this->texture);
+        this->fireSprite = new Sprite(
+            new Animation(
+            {   {0.2, {0.0,0.0,16.0,16.0}},
+                {0.2, {16.0,0.0,16.0,16.0}},
+                {0.2, {32.0,0.0,16.0,16.0}},
+                {0.2, {48.0,0.0,16.0,16.0}},
+                {0.2, {64.0,0.0,16.0,16.0}},
+                {0.2, {80.0,0.0,16.0,16.0}}
+                 
+            }),
+            // position
+            {100.0,0.0},
+            // texOrigin
+            {0.0,0.0},
+            // sprite size
+            {16.0f * scale, 16.0f * scale},
+            this->texture);
     }
 
     void draw(float delta)
     {
-        drawChar(delta, &this->lifeSprite);
+        this->lifeSprite->draw(delta);
         DrawRectangleRec((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, {172, 50, 50, 255});
         DrawRectangleLinesEx((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, 2, {75, 22, 22, 255});
         std::stringstream hpText;
         hpText << this->playerState->HP;
         DrawText(hpText.str().c_str(), 42, 2, 30, LIGHTGRAY);
 
-        drawChar(delta, &this->fireSprite);
+        this->fireSprite->draw(delta);
         DrawRectangleRec((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, {255, 134, 0, 255});
         DrawRectangleLinesEx((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, 2, {186, 47, 0, 255});
         std::stringstream epText;
@@ -93,8 +79,8 @@ private:
     float scale;
     Texture texture;
     PlayerState *playerState;
-    Sprite_t lifeSprite;
-    Sprite_t fireSprite;
+    Sprite *lifeSprite;
+    Sprite *fireSprite;
 };
 
 class LifeGrid

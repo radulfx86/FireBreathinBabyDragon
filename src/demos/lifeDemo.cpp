@@ -22,40 +22,36 @@ public:
         playerState(playerState)
     {
         this->texture = LoadTexture("images/ui.png");
-        this->lifeSprite = new Sprite(
-            new Animation(
+        this->lifeSprite = new AnimatedSprite(
+            // texture bounds
+            {0.0,0.0,16.0,16.0},
+            // screen bounds
+            {0.0,0.0,16.0f * scale, 16.0f * scale},
+            this->texture,
+            {{CharacterState::CHAR_IDLE,
+            (Animation){-1, {},
             {   {0.2, {0.0,0.0,16.0,16.0}},
                 {0.2, {16.0,0.0,16.0,16.0}},
                 {0.2, {32.0,0.0,16.0,16.0}},
                 {0.2, {48.0,0.0,16.0,16.0}},
                 {0.2, {64.0,0.0,16.0,16.0}},
                 {0.2, {80.0,0.0,16.0,16.0}}
-                 
-            }),
-            // position
-            {0.0,0.0},
-            // texOrigin
-            {0.0,0.0},
-            // sprite size
-            {16.0f * scale, 16.0f * scale},
-            this->texture);
-        this->fireSprite = new Sprite(
-            new Animation(
+            }}}});
+        this->fireSprite = new AnimatedSprite(
+            // texture bounds
+            {0.0,16.0,16.0,16.0},
+            // screen bounds
+            {100.0,0.0,16.0f * scale, 16.0f * scale},
+            this->texture,
+            {{CharacterState::CHAR_IDLE,
+            (Animation){-1, {},
             {   {0.2, {0.0,0.0,16.0,16.0}},
                 {0.2, {16.0,0.0,16.0,16.0}},
                 {0.2, {32.0,0.0,16.0,16.0}},
                 {0.2, {48.0,0.0,16.0,16.0}},
                 {0.2, {64.0,0.0,16.0,16.0}},
                 {0.2, {80.0,0.0,16.0,16.0}}
-                 
-            }),
-            // position
-            {100.0,0.0},
-            // texOrigin
-            {0.0,0.0},
-            // sprite size
-            {16.0f * scale, 16.0f * scale},
-            this->texture);
+            }}}});
     }
 
     void draw(float delta)
@@ -79,8 +75,8 @@ private:
     float scale;
     Texture texture;
     PlayerState *playerState;
-    Sprite *lifeSprite;
-    Sprite *fireSprite;
+    AnimatedSprite *lifeSprite;
+    AnimatedSprite *fireSprite;
 };
 
 class LifeGrid
@@ -206,7 +202,7 @@ void showLifeDemo()
     LifeGrid lifeGrid({24,20}, scaleFactor, new TileMap(LoadTexture("images/tileMap.png"), {16.0,16.0}, {4,4}), {3,0}, {3,2});
     lifeGrid.init();
 
-    UI ui({0,0},1.0,&playerState);
+    UI ui({0,0},4.0,&playerState);
 
     SetWindowSize(screenWidth, screenHeight);
     SetWindowTitle("Life Demo");

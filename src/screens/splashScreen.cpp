@@ -4,11 +4,11 @@
 void SplashScreen::initialize()
 {
     TRACE;
-    this->dragonSprite = new Sprite(&idleDragon,
-        {100.0,100.0},
-        {13.0,0.0},
-        {32.0,32.0},
-        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
+    this->dragonSprite = new AnimatedSprite(
+        {0.0,0.0,32.0,32.0},
+        {100.0,100.0,128.0,128.0},
+        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
+        {{CharacterState::CHAR_IDLE, idleDragon}}
     );
 
     SetWindowSize(640, 480);
@@ -51,15 +51,13 @@ void SplashScreen::draw(float delta)
     BeginDrawing();
         if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
                 && CheckCollisionPointRec(GetMousePosition(),
-                    {this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
-                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}) )
+                    dragonSprite->screenBounds) )
         {
             /// TODO this is NOT the way to do such stuff !!!
             this->isDone = true;
         }
         ClearBackground(BLACK);
-            DrawRectangleLinesEx({this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
-                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}, 1.0, RED);
+            DrawRectangleLinesEx(dragonSprite->screenBounds, 1.0, RED);
             DrawText("click on dragon to start level", 100,100,30,ORANGE);
 
         dragonSprite->draw(delta);

@@ -35,11 +35,11 @@ void InfoScreen::setNumTiles(int numTiles)
 
 void LevelScreen::loadCharacters()
 {
-    this->dragonSprite = new Sprite(&idleDragon,
-        {100.0,100.0},
-        {13.0,0.0},
-        {32.0,32.0},
-        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png")
+    this->dragonSprite = new AnimatedSprite(
+        {0.0,0.0,32.0,32.0},
+        {100.0,100.0,64.0,64.0},
+        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
+        {{CharacterState::CHAR_IDLE, idleDragon}}
     );
 
     this->charSpeedMax = 200.0;
@@ -179,11 +179,11 @@ void LevelScreen::movePlayer(float delta)
 
     if ( fabs(this->charSpeed.x) > 1.0f )
     {
-        this->dragonSprite->position.x += this->charSpeed.x * delta;
+        this->dragonSprite->screenBounds.x += this->charSpeed.x * delta;
     }
     if ( fabs(this->charSpeed.y) > 1.0f )
     {
-        this->dragonSprite->position.y += this->charSpeed.y * delta;
+        this->dragonSprite->screenBounds.y += this->charSpeed.y * delta;
     }
 }
 
@@ -191,9 +191,8 @@ void LevelScreen::update(float delta)
 {
     TRACE;
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-            && CheckCollisionPointRec(GetMousePosition(),
-                {this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
-                this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}) )
+            && CheckCollisionPointRec(GetMousePosition(), this->dragonSprite->screenBounds
+                ) )
     {
         this->isDone = true;
         PlaySound(this->fireBreath);
@@ -222,8 +221,7 @@ void LevelScreen::draw(float delta)
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);
-            DrawRectangleLinesEx({this->dragonSprite->position.x * 2, this->dragonSprite->position.y * 2,
-                    this->dragonSprite->size.x * 2, this->dragonSprite->size.y * 2}, 1.0, RED);
+            DrawRectangleLinesEx(this->dragonSprite->screenBounds, 1.0, RED);
             DrawText("this is the LEVEL", 100,100,30,ORANGE);
             DrawText("click on the dragon to exit", 100,300,30,ORANGE);
 

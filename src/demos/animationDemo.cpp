@@ -11,46 +11,47 @@ do { \
     }\
 } while(0)
 
-Animation walkLeftNPC(
+Animation walkLeftNPC = { -1, {}, 
         { { 0.3, {16.0,0.0,16.0,16.0} },
         { 0.3, {32.0,0.0,16.0,16.0} }
-        });
+        }};
 
-Animation walkRightNPC(
+Animation walkRightNPC = { -1, {},
         { { 0.3, {32.0,0.0,-16.0,16.0} },
         { 0.3, {48.0,0.0,-16.0,16.0} }
-        });
+        }};
 
-Animation idleDragon({
-            { 0.2, {0.0,0.0,32.0,32.0}},
+Animation idleDragon = { -1, {},
+            {{ 0.2, {0.0,0.0,32.0,32.0}},
             { 0.2, {32.0,0.0,32.0,32.0}},
             { 0.2, {64.0,0.0,32.0,32.0}},
             { 0.2, {96.0,0.0,32.0,32.0}},
             { 0.2, {128.0,0.0,32.0,32.0}}
-            });
+            }};
 
 
 void showAnimationDemo()
 {
-    Sprite DragonSprite(&idleDragon,
-        {100.0,100.0},
-        {13.0,0.0},
-        {32.0,32.0},
-        LoadTexture("images/dragon_0_20240112_01.png"));
+    AnimatedSprite DragonSprite(
+        {0.0,0.0,32.0,32.0},
+        {100.0,100.0,32.0,32.0},
+        LoadTexture("images/dragon_0_20240112_01.png"),
+        {{CharacterState::CHAR_IDLE, idleDragon}});
 
-    Sprite VillagerSprite(
-        &walkLeftNPC,
-        {200.0,100.0},
-        {3.0,16.0},
-        {32.0,32.0},
-        LoadTexture("images/villagers_20240112_01.png"));
+    AnimatedSprite VillagerSprite(
+        {0.0,16.0,16.0,16.0},
+        {200.0,100.0,32.0,32.0},
+        LoadTexture("images/villagers_20240112_01.png"),
+        {{CharacterState::CHAR_WALK, walkLeftNPC}});
+    VillagerSprite.animationState.activeAnimation = CharacterState::CHAR_WALK;
 
-    Sprite MageSprite(
-        &walkRightNPC,
-        {250.0,100.0},
-        {0.0,48.0},
-        {24.0,24.0},
-        LoadTexture("images/villagers_20240112_01.png"));
+    AnimatedSprite MageSprite(
+        {0.0,48.0,16.0,16.0},
+        {250.0,100.0,24.0,24.0},
+        LoadTexture("images/villagers_20240112_01.png"),
+        {{CharacterState::CHAR_WALK, walkLeftNPC}});
+    MageSprite.animationState.activeAnimation = CharacterState::CHAR_WALK;
+
     const int screenWidth = 800;
     const int screenHeight = 600;
     SetWindowSize(screenWidth, screenHeight);

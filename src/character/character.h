@@ -10,11 +10,26 @@ using Direction = enum { DIR_E = 0, DIR_N, DIR_W, DIR_S };
 using ActionType = enum { ACTION_HIT = 0 };
 class Character;
 using ActionFunction = bool (*)(Character *);
+/// NOTE might not be needed as a separate type, just in case for now
+using StateFunction = ActionFunction;
 class Animation;
 using AnimationTrigger = void (*)(Animation *);
 using TimedFrame = std::pair<float, Rectangle>;
 using AnimationFrames = std::vector<TimedFrame>;
-enum class CharacterState { CHAR_IDLE = 0, CHAR_WALK, CHAR_DIE, CHAR_FIGHT, CHAR_SPECIAL_1, CHAR_SPECIAL_2};
+enum class CharacterState
+{
+    CHAR_IDLE = 0,
+    CHAR_WALK_N,
+    CHAR_WALK_E,
+    CHAR_WALK_S,
+    CHAR_WALK_W,
+    CHAR_DIE,
+    CHAR_ATTACK_N,
+    CHAR_ATTACK_E,
+    CHAR_ATTACK_S,
+    CHAR_ATTACK_W,
+    CHAR_SPECIAL_1,
+    CHAR_SPECIAL_2};
 
 typedef struct Animation
 {
@@ -63,6 +78,14 @@ public:
     AnimatedSprite(Rectangle textureBounds,
         Rectangle screenBounds,
         Texture2D texture,
+        std::map<CharacterState, Animation> animations,
+        AnimationState animationState)
+        : Sprite(textureBounds, screenBounds, texture),
+            animations(animations),
+            animationState(animationState) {}
+    AnimatedSprite(Rectangle textureBounds,
+        Rectangle screenBounds,
+        Texture2D texture,
         std::map<CharacterState, Animation> animations)
         : Sprite(textureBounds, screenBounds, texture),
             animations(animations),
@@ -74,20 +97,21 @@ public:
     AnimationState animationState;
 };
 
+/// NOTE: rename to something more generic - as it can be used for both characters and objects
 class Character
 {
 public:
     Character(Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
         : worldBounds(worldBounds),
         screenBounds(screenBounds),
-            direction(DIR_E),
             sprite(sprite) {}
     Rectangle worldBounds;
     Rectangle screenBounds;
-    Direction direction;
     CharacterState state;
     std::map<ActionType, ActionFunction> actions;
+    std::map<CharacterState, StateFunction> strategy;
     AnimatedSprite *sprite;
 };
+
 
 #endif // CHARACTER_H

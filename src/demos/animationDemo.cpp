@@ -42,15 +42,15 @@ void showAnimationDemo()
         {0.0,16.0,16.0,16.0},
         {200.0,100.0,32.0,32.0},
         LoadTexture("images/villagers_20240112_01.png"),
-        {{CharacterState::CHAR_WALK, walkLeftNPC}});
-    VillagerSprite.animationState.activeAnimation = CharacterState::CHAR_WALK;
+        {{CharacterState::CHAR_WALK_E, walkLeftNPC}});
+    VillagerSprite.animationState.activeAnimation = CharacterState::CHAR_WALK_E;
 
     AnimatedSprite MageSprite(
         {0.0,48.0,16.0,16.0},
         {250.0,100.0,24.0,24.0},
         LoadTexture("images/villagers_20240112_01.png"),
-        {{CharacterState::CHAR_WALK, walkLeftNPC}});
-    MageSprite.animationState.activeAnimation = CharacterState::CHAR_WALK;
+        {{CharacterState::CHAR_WALK_W, walkLeftNPC}});
+    MageSprite.animationState.activeAnimation = CharacterState::CHAR_WALK_W;
 
     const int screenWidth = 800;
     const int screenHeight = 600;

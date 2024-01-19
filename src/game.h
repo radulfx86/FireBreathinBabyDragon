@@ -77,7 +77,6 @@ private:
 do { \
     std::cerr << __func__ << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
 } while(0)
-
 #endif
 
 

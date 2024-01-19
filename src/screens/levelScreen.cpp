@@ -1,5 +1,6 @@
 #include "levelScreen.h"
 #include "datastore.h"
+#include "characterAnimations.h"
 #include <sstream>
 #include <cmath>
 
@@ -49,19 +50,99 @@ void LevelScreen::loadCharacters()
     InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
+    /// NPCs
+    std::cerr << "load NPCs" << std::endl;
+    Rectangle npcWorldBounds;
+    npcWorldBounds.width = 1;
+    npcWorldBounds.height = 1;
+    Rectangle npcScreenBounds{0,0,16,16};
+    Rectangle npcTextureBounds{0,0,16,16};
+    this->npcTexture = Datastore::getInstance().getTexture("images/villagers_20240112_01.png");
+    const int MAX_NPC = 42;
+    std::map<CharacterState, Animation> npcAnimations = {
+        {CharacterState::CHAR_IDLE, charAnimationIdle},
+        {CharacterState::CHAR_DIE, charAnimationDie},
+        {CharacterState::CHAR_WALK_N, charAnimationWalkN},
+        {CharacterState::CHAR_WALK_E, charAnimationWalkE},
+        {CharacterState::CHAR_WALK_S, charAnimationWalkS},
+        {CharacterState::CHAR_WALK_W, charAnimationWalkW}
+        };
+    for ( int i = 0; i < MAX_NPC; ++i )
+    {
+        npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
+        npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
+        npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
+        npcTextureBounds.y = GetRandomValue(0,4) * 16;
+        this->characters.push_back(
+            Character(npcWorldBounds,
+                npcScreenBounds,
+                new AnimatedSprite(
+                    npcTextureBounds,
+                    npcScreenBounds,
+                    npcTexture,
+                    npcAnimations,{(AnimationState){CharacterState::CHAR_IDLE,0,0,0}}
+                    )));
+                std::cerr << "generate character at " << npcScreenBounds.x
+                    << ", " << npcScreenBounds.y
+                    << " size " << npcScreenBounds.width
+                    << " x " << npcScreenBounds.height 
+                    << " in world at " << npcWorldBounds.x
+                    << ", " << npcWorldBounds.y
+                    << " size " << npcWorldBounds.width
+                    << " x " << npcWorldBounds.height << "\n";
+    }
+}
+
+void LevelScreen::loadObjects()
+{
+    TRACE;
+    ///
+    std::cerr << "load Objects" << std::endl;
+    Rectangle objectWorldBounds;
+    objectWorldBounds.width = 1;
+    objectWorldBounds.height = 2;
+    Rectangle objectScreenBounds{0,0,1,1};
+    Rectangle objectTextureBounds{0,0,16,32};
+    this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
+    const int MAX_OBJECTS = 42;
+    std::map<CharacterState, Animation> objectAnimations = 
+        {{CharacterState::CHAR_IDLE,
+            (Animation){-1, {},
+            {   {0.2, {0.0,0.0,16.0,32.0}},
+                {0.2, {16.0,0.0,16.0,32.0}},
+                {0.2, {32.0,0.0,16.0,32.0}},
+                {0.2, {48.0,0.0,16.0,32.0}}
+            }}}};
+    for ( int i = 0; i < MAX_OBJECTS; ++i )
+    {
+        objectWorldBounds.x = GetRandomValue(0, this->levelSize.x);
+        objectWorldBounds.y = GetRandomValue(0, this->levelSize.y);
+        objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
+        objectTextureBounds.y = GetRandomValue(0,5) * 32;
+        this->objects.push_back(
+            Character(objectWorldBounds,
+                objectScreenBounds,
+                new AnimatedSprite(
+                    objectTextureBounds,
+                    objectScreenBounds,
+                    objectTexture,
+                    objectAnimations)));
+    }
+    std::cerr << this->objects.size() <<" Objects loaded" << std::endl;
 }
 
 void LevelScreen::loadTiles()
 {
     this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
-    const unsigned int tilesX = 100;
-    const unsigned int tilesY = 100;
-    float tileScaleFactor = 2.0;
+    const unsigned int tilesX = 50;
+    const unsigned int tilesY = 50;
+    this->levelSize = {tilesX, tilesY};
+    float tileScaleFactor = 1.0;
     for ( int y = 0; y < tilesY; ++y )
     {
         for ( int x = 0; x < tilesX; ++x )
         {
-    Vector2 defaultTile = {(float)(x%4),(float)(y%4)};
+            Vector2 defaultTile = {(float)(x%4),(float)(y%4)};
             /// source rectangle in source-px-coordinates
             this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
                 defaultTile.x * this->tiles.tileSize.x,
@@ -92,6 +173,8 @@ void LevelScreen::initialize()
     this->infoScreen = new InfoScreen({200,10});
     
     loadTiles();
+
+    loadObjects();
 
     loadCharacters();
 }
@@ -187,8 +270,16 @@ void LevelScreen::movePlayer(float delta)
     }
 }
 
+void LevelScreen::moveNPCs(float delta)
+{
+    /// TODO - leaving delta unused so I get the compiler warning
+}
 void LevelScreen::update(float delta)
 {
+    if ( !IsTextureReady(this->npcTexture) || !IsTextureReady(this->objectTexture) )
+    {
+        return;
+    }
     TRACE;
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
             && CheckCollisionPointRec(GetMousePosition(), this->dragonSprite->screenBounds
@@ -198,19 +289,41 @@ void LevelScreen::update(float delta)
         PlaySound(this->fireBreath);
     }
     float zoomDelta = GetMouseWheelMove();
+    bool needsUpdate = false;
     if ( zoomDelta != 0.0 )
     {
+        /// TODO the zoom is inverted for characters and tiles ... fixing later
         this->scale = (this->scale + zoomDelta) > 0.3 ? (this->scale + zoomDelta) < 5.0 ? this->scale + zoomDelta : 5.0 : 0.3;
         Vector2 mousePos = GetMousePosition();
         /// TODO find a way to zoom into the mouse position ... too tired for this now
         this->camera.zoom = this->scale;
-        this->tiles.updateCamera(this->camera);
         std::stringstream scaleStr;
         scaleStr << "scale: " << this->scale;
         this->infoScreen->scaleText = scaleStr.str();
+        needsUpdate = true;
     }
-    movePlayer(delta);
+    // since zoom does not work:
+    needsUpdate = false;
 
+    if ( needsUpdate )
+    {
+        this->tiles.updateCamera(this->camera);
+        for ( Character &character : this->characters )
+        {
+            character.screenBounds = LevelScreen::WorldToScreen(this, character.worldBounds);
+            character.sprite->screenBounds = character.screenBounds;
+        }
+        for ( Character &obj : this->objects )
+        {
+            obj.screenBounds = LevelScreen::WorldToScreen(this, obj.worldBounds);
+            obj.sprite->screenBounds = obj.screenBounds;
+        }
+    }
+
+    movePlayer(delta);
+    moveNPCs(delta);
+
+    /// TODO z-sort characters and objects !!!
 
     this->draw(delta);
     this->infoScreen->draw(delta);
@@ -227,6 +340,27 @@ void LevelScreen::draw(float delta)
 
         int numTiles = this->tiles.draw();
         infoScreen->setNumTiles(numTiles);
+        
+        for ( Character &object : this->objects )
+        {
+            if ( object.sprite )
+            {
+                object.sprite->draw(delta);
+            }
+        }
+        for ( Character &character : this->characters )
+        {
+            if ( character.sprite )
+            {
+                character.sprite->draw(delta);
+                #if 0
+                std::cerr << "draw character at " << character.sprite->screenBounds.x
+                    << ", " << character.sprite->screenBounds.y
+                    << " size " << character.sprite->screenBounds.width
+                    << " x " << character.sprite->screenBounds.height << "\n";
+                    #endif
+            }
+        }
 
         dragonSprite->draw(delta);
     EndDrawing();

@@ -1,4 +1,5 @@
 #include "character.h"
+#include <iostream>
 
 void Sprite::draw(float delta)
 {
@@ -18,6 +19,13 @@ void AnimatedSprite::draw(float delta)
             && (this->animations[this->animationState.activeAnimation].loop == -1
                  || this->animations[this->animationState.activeAnimation].loop > this->animationState.currentLoop);
     // update animation
+    #if 0
+    std::cerr << "AnimatedSprite::draw(" << delta
+        << ", animation: " << static_cast<int>(this->animationState.activeAnimation) << "/" << this->animations.size()
+        << ", frame: " << this->animationState.activeFrame << "/" << this->animations[this->animationState.activeAnimation].frames.size()
+        << ", update: " << std::boolalpha << updateAnimation
+        << ", frameDelta: " << this->animationState.frameDelta <<")\n";
+        #endif
     if ( updateAnimation )
     {
         float tmpDelta = delta + this->animationState.frameDelta;

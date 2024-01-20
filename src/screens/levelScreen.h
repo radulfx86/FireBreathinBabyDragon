@@ -106,13 +106,20 @@ private:
     void loadTiles();
     void movePlayer(float delta);
     void moveNPCs(float delta);
+    void updateNPCs(float delta);
+    bool checkCollision(Rectangle worldBounds);
+    void updateDistanceMaps();
     Camera2D camera;
     Vector2 levelSize;
 
-    std::vector<Character> characters;
+    std::vector<Character*> characters;
     std::vector<Character> objects;
+    Character *player;
 
     Texture2D objectTexture, npcTexture;
+
+    /// TODO first prototype of distance map. split into multiple maps (with better types) later
+    std::vector<std::vector<int>> distanceMap;
 };
 
 #endif // LEVEL_SCREEN_H

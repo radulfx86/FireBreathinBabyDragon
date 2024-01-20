@@ -4,6 +4,47 @@
 #include <sstream>
 #include <cmath>
 
+bool moveCharacter(Character *character, std::vector<std::vector<int>> distanceMap)
+{
+    if ( nullptr == character )
+    {
+        return false;
+    }
+    std::cerr << __func__ << "(" << character->name << ")\n";
+    CharacterState dir = CharacterState::CHAR_IDLE;
+    int x = static_cast<int>(character->worldBounds.x);
+    int y = static_cast<int>(character->worldBounds.y);
+    const int maxX = distanceMap.size()-1;
+    const int maxY = distanceMap[0].size()-1;
+    x = (x < 0 ) ? 0 : x > maxX ? maxX : x;
+    y = (y < 0 ) ? 0 : y > maxY ? maxY : y;
+    float dist = 99;
+    // left
+    if ( x > 0 && distanceMap[x-1][y] < dist )
+    {
+        dist = distanceMap[x-1][y];
+        dir = CharacterState::CHAR_WALK_E;
+    } // right
+    if ( x < distanceMap.size()-1 && distanceMap[x+1][y] < dist )
+    {
+        dist = distanceMap[x+1][y];
+        dir = CharacterState::CHAR_WALK_W;
+    } // up
+    if ( y > 0 && distanceMap[x][y-1] < dist )
+    {
+        dist = distanceMap[x][y-1];
+        dir = CharacterState::CHAR_WALK_N;
+    } // down
+    if ( y < distanceMap[0].size() && distanceMap[x][y-1] < dist )
+    {
+        dist = distanceMap[x][y+1];
+        dir = CharacterState::CHAR_WALK_S;
+    }
+    character->state = dir;
+    character->sprite->animationState.activeAnimation = dir;
+    return true;
+}
+
 void InfoScreen::draw(float delta)
 {
     sumDelta += delta;
@@ -47,6 +88,10 @@ void LevelScreen::loadCharacters()
     this->charSpeed = {100.0f, 0.0f};
     this->charAcc = 100.0;
 
+    Rectangle playerWorldBounds{100,100,64,64};
+    Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
+    this->player = new Character("player", CharacterState::CHAR_IDLE, playerWorldBounds, playerScreenBounds, this->dragonSprite);
+
     InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
@@ -60,27 +105,35 @@ void LevelScreen::loadCharacters()
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers_20240112_01.png");
     const int MAX_NPC = 42;
     std::map<CharacterState, Animation> npcAnimations = {
-        {CharacterState::CHAR_IDLE, charAnimationIdle},
+        //{CharacterState::CHAR_IDLE, charAnimationIdle},
         {CharacterState::CHAR_DIE, charAnimationDie},
         {CharacterState::CHAR_WALK_N, charAnimationWalkN},
         {CharacterState::CHAR_WALK_E, charAnimationWalkE},
         {CharacterState::CHAR_WALK_S, charAnimationWalkS},
         {CharacterState::CHAR_WALK_W, charAnimationWalkW}
         };
+    CharacterState stateMap[] = {CharacterState::CHAR_IDLE,
+        CharacterState::CHAR_DIE,
+        CharacterState::CHAR_WALK_N,
+        CharacterState::CHAR_WALK_E,
+        CharacterState::CHAR_WALK_S,
+        CharacterState::CHAR_WALK_W};
     for ( int i = 0; i < MAX_NPC; ++i )
     {
         npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
         npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
         npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
         npcTextureBounds.y = GetRandomValue(0,4) * 16;
+        CharacterState npcState = stateMap[static_cast<int>(GetRandomValue(0,5))];
+        npcState = CharacterState::CHAR_WALK_S;
         this->characters.push_back(
-            Character(npcWorldBounds,
+            new Character("NPC", npcState, npcWorldBounds,
                 npcScreenBounds,
                 new AnimatedSprite(
                     npcTextureBounds,
                     npcScreenBounds,
                     npcTexture,
-                    npcAnimations,{(AnimationState){CharacterState::CHAR_IDLE,0,0,0}}
+                    npcAnimations,{(AnimationState){npcState,0,0,0}}
                     )));
                 std::cerr << "generate character at " << npcScreenBounds.x
                     << ", " << npcScreenBounds.y
@@ -89,7 +142,21 @@ void LevelScreen::loadCharacters()
                     << " in world at " << npcWorldBounds.x
                     << ", " << npcWorldBounds.y
                     << " size " << npcWorldBounds.width
-                    << " x " << npcWorldBounds.height << "\n";
+                    << " x " << npcWorldBounds.height
+                    << " with start state " << static_cast<int>(npcState) << "\n";
+    }
+    for (Character *npc : this->characters )
+    {
+        std::cerr << "modifying " << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")" << "\n";
+        npc->strategy[CharacterState::CHAR_WALK_E] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_W] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_S] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_N] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_N] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_E] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_S] = moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_W] = moveCharacter;
+
     }
 }
 
@@ -120,7 +187,7 @@ void LevelScreen::loadObjects()
         objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
         objectTextureBounds.y = GetRandomValue(0,5) * 32;
         this->objects.push_back(
-            Character(objectWorldBounds,
+            Character("OBJECT", CharacterState::CHAR_IDLE, objectWorldBounds,
                 objectScreenBounds,
                 new AnimatedSprite(
                     objectTextureBounds,
@@ -131,12 +198,30 @@ void LevelScreen::loadObjects()
     std::cerr << this->objects.size() <<" Objects loaded" << std::endl;
 }
 
+void LevelScreen::updateDistanceMaps()
+{
+    if ( nullptr == this->player )
+    {
+        return;
+    }
+    /// TODO: do proper flood-fill or anything better than this !!!
+    for ( int y = 0; y < this->levelSize.y; ++y )
+    {
+        for ( int x = 0; x < this->levelSize.x; ++x )
+        {
+            Vector2 delta = {x - this->player->worldBounds.x, y - this->player->worldBounds.y};
+            distanceMap[x][y] = delta.x * delta.x + delta.y * delta.y; 
+        }
+    }
+}
+
 void LevelScreen::loadTiles()
 {
     this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
     const unsigned int tilesX = 50;
     const unsigned int tilesY = 50;
     this->levelSize = {tilesX, tilesY};
+    this->distanceMap.resize(tilesX,std::vector<int>(tilesY));
     float tileScaleFactor = 1.0;
     for ( int y = 0; y < tilesY; ++y )
     {
@@ -177,6 +262,8 @@ void LevelScreen::initialize()
     loadObjects();
 
     loadCharacters();
+
+    updateDistanceMaps();
 }
 void LevelScreen::finalize()
 {
@@ -270,10 +357,70 @@ void LevelScreen::movePlayer(float delta)
     }
 }
 
+bool LevelScreen::checkCollision(Rectangle worldBounds)
+{
+    // TODO
+    return false;
+}
+
 void LevelScreen::moveNPCs(float delta)
 {
+    std::cerr << __func__ << std::endl;
     /// TODO - leaving delta unused so I get the compiler warning
+    float charSpeed = 10.0;
+    for ( Character *npc : this->characters )
+    {
+        Vector2 deltaPos = { 0, 0};
+        bool isMoving = true;
+        //std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
+        switch( npc->state )
+        {
+            case CharacterState::CHAR_WALK_E:
+                deltaPos.x += delta * charSpeed;
+                break;
+            case CharacterState::CHAR_WALK_W:
+                deltaPos.x -= delta * charSpeed;
+                break;
+            case CharacterState::CHAR_WALK_N:
+                deltaPos.y -= delta * charSpeed;
+                break;
+            case CharacterState::CHAR_WALK_S:
+                deltaPos.y += delta * charSpeed;
+                break;
+            default:
+                isMoving = false;
+                break;
+        }
+        if ( isMoving )
+        {
+            Rectangle tempBounds = npc->worldBounds;
+            tempBounds.x += deltaPos.x;
+            tempBounds.y += deltaPos.y;
+            if ( not this->checkCollision(tempBounds) )
+            {
+                npc->worldBounds = tempBounds;
+                npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
+                npc->sprite->screenBounds = npc->screenBounds;
+                std::cerr << __func__ << "(" << npc->name << ") by " << deltaPos.x << " " << deltaPos.y << " to screen pos " << npc->screenBounds.x << " " << npc->screenBounds.y <<"\n";
+            }
+        }
+    }
+
 }
+
+void LevelScreen::updateNPCs(float delta)
+{
+    for ( Character *npc : this->characters )
+    {
+            //std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
+        if ( npc->strategy.count(npc->state) > 0 )
+        {
+            std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
+            npc->strategy[npc->state](npc, this->distanceMap);
+        }
+    }
+}
+
 void LevelScreen::update(float delta)
 {
     if ( !IsTextureReady(this->npcTexture) || !IsTextureReady(this->objectTexture) )
@@ -308,10 +455,10 @@ void LevelScreen::update(float delta)
     if ( needsUpdate )
     {
         this->tiles.updateCamera(this->camera);
-        for ( Character &character : this->characters )
+        for ( Character *character : this->characters )
         {
-            character.screenBounds = LevelScreen::WorldToScreen(this, character.worldBounds);
-            character.sprite->screenBounds = character.screenBounds;
+            character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
+            character->sprite->screenBounds = character->screenBounds;
         }
         for ( Character &obj : this->objects )
         {
@@ -319,6 +466,8 @@ void LevelScreen::update(float delta)
             obj.sprite->screenBounds = obj.screenBounds;
         }
     }
+
+    updateNPCs(delta);
 
     movePlayer(delta);
     moveNPCs(delta);
@@ -348,11 +497,11 @@ void LevelScreen::draw(float delta)
                 object.sprite->draw(delta);
             }
         }
-        for ( Character &character : this->characters )
+        for ( Character *character : this->characters )
         {
-            if ( character.sprite )
+            if ( character->sprite )
             {
-                character.sprite->draw(delta);
+                character->sprite->draw(delta);
                 #if 0
                 std::cerr << "draw character at " << character.sprite->screenBounds.x
                     << ", " << character.sprite->screenBounds.y

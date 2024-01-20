@@ -4,14 +4,14 @@
 #include "raylib.h"
 #include <map>
 #include <vector>
+#include <string>
 
 
 using Direction = enum { DIR_E = 0, DIR_N, DIR_W, DIR_S };
 using ActionType = enum { ACTION_HIT = 0 };
 class Character;
 using ActionFunction = bool (*)(Character *);
-/// NOTE might not be needed as a separate type, just in case for now
-using StateFunction = ActionFunction;
+using StateFunction = bool (*)(Character *, std::vector<std::vector<int>>); 
 class Animation;
 using AnimationTrigger = void (*)(Animation *);
 using TimedFrame = std::pair<float, Rectangle>;
@@ -19,17 +19,17 @@ using AnimationFrames = std::vector<TimedFrame>;
 enum class CharacterState
 {
     CHAR_IDLE = 0,
-    CHAR_WALK_N,
-    CHAR_WALK_E,
-    CHAR_WALK_S,
-    CHAR_WALK_W,
-    CHAR_DIE,
-    CHAR_ATTACK_N,
-    CHAR_ATTACK_E,
-    CHAR_ATTACK_S,
-    CHAR_ATTACK_W,
-    CHAR_SPECIAL_1,
-    CHAR_SPECIAL_2};
+    CHAR_WALK_N = 1,
+    CHAR_WALK_E = 2,
+    CHAR_WALK_S = 3,
+    CHAR_WALK_W = 4,
+    CHAR_DIE = 5,
+    CHAR_ATTACK_N = 6,
+    CHAR_ATTACK_E = 7,
+    CHAR_ATTACK_S = 8,
+    CHAR_ATTACK_W = 9,
+    CHAR_SPECIAL_1 = 10,
+    CHAR_SPECIAL_2 = 11};
 
 typedef struct Animation
 {
@@ -101,10 +101,13 @@ public:
 class Character
 {
 public:
-    Character(Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
-        : worldBounds(worldBounds),
+    Character(std::string name, CharacterState state, Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
+        : name(name),
+        state(state),
+        worldBounds(worldBounds),
         screenBounds(screenBounds),
             sprite(sprite) {}
+    std::string name;
     Rectangle worldBounds;
     Rectangle screenBounds;
     CharacterState state;

@@ -10,13 +10,8 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
     const int maxY = distanceMap[0].size()-1;
     x = (x < 0 ) ? 0 : x > maxX ? maxX : x;
     y = (y < 0 ) ? 0 : y > maxY ? maxY : y;
-    #if 0
-    std::cerr << "distances: L: " << distanceMap[x-1][y]
-        << " R: " << distanceMap[x+1][y]
-        << " U: " << distanceMap[x][y-1]
-        << " D: " << distanceMap[x][y+2] << "\n";
-        #endif
-    float dist = distanceMap[x][y];
+    int dist = distanceMap[x][y];
+    bool update = false;
     // left
     if ( x > 0 && distanceMap[x-1][y] < dist )
     {
@@ -24,6 +19,7 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         dir = CharacterState::CHAR_WALK_W;
         std::cerr << __func__ << " left dist: " << dist
         << " select dir " << static_cast<int>(dir) <<  std::endl;
+        update = true;
     } // right
     if ( x < distanceMap.size()-1 && distanceMap[x+1][y] < dist )
     {
@@ -31,6 +27,7 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         dir = CharacterState::CHAR_WALK_E;
         std::cerr << __func__ << " right dist: " << dist
         << " select dir " << static_cast<int>(dir) <<  std::endl;
+        update = true;
     } // up
     if ( y > 0 && distanceMap[x][y-1] < dist )
     {
@@ -38,6 +35,7 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         dir = CharacterState::CHAR_WALK_N;
         std::cerr << __func__ << " up dist: " << dist
         << " select dir " << static_cast<int>(dir) <<  std::endl;
+        update = true;
     } // down
     if ( y < distanceMap[0].size() && distanceMap[x][y-1] < dist )
     {
@@ -45,6 +43,13 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         dir = CharacterState::CHAR_WALK_S;
         std::cerr << __func__ << " down dist: " << dist
         << " select dir " << static_cast<int>(dir) <<  std::endl;
+        update = true;
+    }
+    if ( !update )
+    {
+        std::cerr << "did not update position - distance at " << dist
+         << "{" << distanceMap[x][y-1] << ", " << distanceMap[x+1][y]
+         << ", "<< distanceMap[x][y+1] << ", " << distanceMap[x-1][y] << "}\n";
     }
     return true;
 }
@@ -147,7 +152,7 @@ void LevelScreen::loadCharacters()
     Rectangle npcScreenBounds{0,0,16,16};
     Rectangle npcTextureBounds{0,0,16,16};
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers_20240112_01.png");
-    const int MAX_NPC = 42;
+    const int MAX_NPC = 10;
     std::map<CharacterState, Animation> npcAnimations = {
         {CharacterState::CHAR_IDLE, charAnimationIdle},
         {CharacterState::CHAR_DIE, charAnimationDie},
@@ -258,8 +263,9 @@ void LevelScreen::updateDistanceMaps()
     {
         for ( int x = 0; x < this->levelSize.x; ++x )
         {
+            // do manhattan distance
             Vector2 delta = {x - this->levelSize.x/2, y - this->levelSize.y/2};
-            distanceMap[x][y] = sqrt(delta.x * delta.x + delta.y * delta.y);
+            distanceMap[x][y] = fabs(delta.x) + fabs(delta.y);
         }
     }
 }

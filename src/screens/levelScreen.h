@@ -66,6 +66,18 @@ public:
             return {0,0,0,0};
         }
     }
+    static Vector2 ScreenToWorld(LevelScreen *level, Vector2 screenCoords)
+    {
+        if ( level && (level->scale != 0.0 ))
+        {
+            return {(screenCoords.x - level->offset.x) / (level->scale * level->tiles.tileSize.x),
+                (screenCoords.y - level->offset.y) / (level->scale * level->tiles.tileSize.y)};
+        }
+        else
+        {
+            return {0,0};
+        }
+    }
     /**
      * @brief convert coords from world to screen
      * @note check computation, especially usage and unit-space of offset
@@ -108,7 +120,7 @@ private:
     void moveNPCs(float delta);
     void updateNPCs(float delta);
     bool checkCollision(Rectangle worldBounds);
-    void updateDistanceMaps();
+    void updateDistanceMaps(Vector2 worldTargetPos);
     Camera2D camera;
     Vector2 levelSize;
 

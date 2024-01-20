@@ -4,7 +4,7 @@
 #include <sstream>
 #include <cmath>
 
-bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int>> distanceMap)
+bool getNextState(int &x, int &y, CharacterState &dir, std::vector<std::vector<int>> distanceMap)
 {
     const int maxX = distanceMap.size()-1;
     const int maxY = distanceMap[0].size()-1;
@@ -21,7 +21,7 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         << " select dir " << static_cast<int>(dir) <<  std::endl;
         update = true;
     } // right
-    if ( x < distanceMap.size()-1 && distanceMap[x+1][y] < dist )
+    if ( x < maxX && distanceMap[x+1][y] < dist )
     {
         dist = distanceMap[x+1][y];
         dir = CharacterState::CHAR_WALK_E;
@@ -37,7 +37,7 @@ bool getNextPos(int &x, int &y, CharacterState &dir, std::vector<std::vector<int
         << " select dir " << static_cast<int>(dir) <<  std::endl;
         update = true;
     } // down
-    if ( y < distanceMap[0].size() && distanceMap[x][y-1] < dist )
+    if ( y < maxY && distanceMap[x][y-1] < dist )
     {
         dist = distanceMap[x][y+1];
         dir = CharacterState::CHAR_WALK_S;
@@ -63,10 +63,11 @@ bool idleCharacter(Character *character, std::vector<std::vector<int>> distanceM
     CharacterState dir = CharacterState::CHAR_IDLE;
     int x = static_cast<int>(character->worldBounds.x);
     int y = static_cast<int>(character->worldBounds.y);
-    getNextPos(x,y,dir,distanceMap);
+    getNextState(x,y,dir,distanceMap);
     std::cerr << __func__ << "(" << character->name << ") state " << static_cast<int>(character->state) << " -> " << static_cast<int>(dir) << "\n";
     if ( dir != CharacterState::CHAR_IDLE )
     {
+        std::cerr << "char at " << x << " " << y <<  " not idle any more\n";
         character->state = dir;
         character->sprite->animationState.activeAnimation = dir;
     }
@@ -83,7 +84,7 @@ bool moveCharacter(Character *character, std::vector<std::vector<int>> distanceM
     CharacterState dir = CharacterState::CHAR_IDLE;
     int x = static_cast<int>(character->worldBounds.x);
     int y = static_cast<int>(character->worldBounds.y);
-    getNextPos(x, y, dir, distanceMap);
+    getNextState(x, y, dir, distanceMap);
     std::cerr << __func__ << "(" << character->name << ")"
         << "state " << static_cast<int>(character->state)
         << "(" << static_cast<int>(character->sprite->animationState.activeAnimation)
@@ -152,7 +153,7 @@ void LevelScreen::loadCharacters()
     Rectangle npcScreenBounds{0,0,16,16};
     Rectangle npcTextureBounds{0,0,16,16};
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers_20240112_01.png");
-    const int MAX_NPC = 10;
+    const int MAX_NPC = 2;
     std::map<CharacterState, Animation> npcAnimations = {
         {CharacterState::CHAR_IDLE, charAnimationIdle},
         {CharacterState::CHAR_DIE, charAnimationDie},
@@ -252,7 +253,7 @@ void LevelScreen::loadObjects()
     std::cerr << this->objects.size() <<" Objects loaded" << std::endl;
 }
 
-void LevelScreen::updateDistanceMaps()
+void LevelScreen::updateDistanceMaps(Vector2 worldTargetPos)
 {
     if ( nullptr == this->player )
     {
@@ -264,7 +265,7 @@ void LevelScreen::updateDistanceMaps()
         for ( int x = 0; x < this->levelSize.x; ++x )
         {
             // do manhattan distance
-            Vector2 delta = {x - this->levelSize.x/2, y - this->levelSize.y/2};
+            Vector2 delta = {x - worldTargetPos.x, y - worldTargetPos.y};
             distanceMap[x][y] = fabs(delta.x) + fabs(delta.y);
         }
     }
@@ -273,8 +274,8 @@ void LevelScreen::updateDistanceMaps()
 void LevelScreen::loadTiles()
 {
     this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
-    const unsigned int tilesX = 50;
-    const unsigned int tilesY = 50;
+    const unsigned int tilesX = 40;
+    const unsigned int tilesY = 30;
     this->levelSize = {tilesX, tilesY};
     this->distanceMap.resize(tilesX,std::vector<int>(tilesY));
     float tileScaleFactor = 1.0;
@@ -318,7 +319,7 @@ void LevelScreen::initialize()
 
     loadCharacters();
 
-    updateDistanceMaps();
+    updateDistanceMaps(this->levelSize);
 }
 void LevelScreen::finalize()
 {
@@ -483,12 +484,15 @@ void LevelScreen::update(float delta)
         return;
     }
     TRACE;
-    if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-            && CheckCollisionPointRec(GetMousePosition(), this->dragonSprite->screenBounds
-                ) )
+    if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
     {
-        this->isDone = true;
-        PlaySound(this->fireBreath);
+        if( CheckCollisionPointRec(GetMousePosition(), this->dragonSprite->screenBounds
+                    ) )
+        {
+            this->isDone = true;
+            PlaySound(this->fireBreath);
+        }
+        this->updateDistanceMaps(LevelScreen::ScreenToWorld(this,GetMousePosition()));
     }
     float zoomDelta = GetMouseWheelMove();
     bool needsUpdate = false;

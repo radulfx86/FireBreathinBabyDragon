@@ -301,7 +301,7 @@ void LevelScreen::initialize()
 
     loadCharacters();
 
-    updateDistanceMaps(this->levelSize);
+    updateDistanceMaps({this->levelSize.x/2, this->levelSize.y/2});
 }
 void LevelScreen::finalize()
 {

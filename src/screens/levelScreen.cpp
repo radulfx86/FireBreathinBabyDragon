@@ -37,7 +37,7 @@ bool getNextState(int &x, int &y, CharacterState &dir, std::vector<std::vector<i
         << " select dir " << static_cast<int>(dir) <<  std::endl;
         update = true;
     } // down
-    if ( y < maxY && distanceMap[x][y-1] < dist )
+    if ( y < maxY && distanceMap[x][y+1] < dist )
     {
         dist = distanceMap[x][y+1];
         dir = CharacterState::CHAR_WALK_S;

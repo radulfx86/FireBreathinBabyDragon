@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <iostream>
 
+/// @brief collection of a number of tiles
+/// TODO extend to use "Sprites" or AnimatedSprites instead
 class TileMap
 {
 public:
@@ -55,6 +57,9 @@ public:
         DrawRectangleLinesEx(this->viewport, 1.0, RED);
         return countVisTiles;
     }
+    /// @brief apply camera transformation to the image section
+    /// @note TODO there is something wrong, zoom works inverse??
+    /// @param camera 
     void updateCamera(Camera2D camera)
     {
         std::cerr << __func__ << " cam: " << camera.target.x << " " << camera.target.y << "\n";

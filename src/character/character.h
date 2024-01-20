@@ -6,16 +6,46 @@
 #include <vector>
 #include <string>
 
-
+/**
+ * @brief type for direction
+ * @note unused, delete if not used later
+ */
 using Direction = enum { DIR_E = 0, DIR_N, DIR_W, DIR_S };
+/**
+ * @brief type for actions that can be performed on characters
+ */
 using ActionType = enum { ACTION_HIT = 0 };
+/// forward declaration for ActionFunction
 class Character;
+/**
+ * @brief type for function to be called to apply an action on the character
+ * @param character pointer to character
+ */
 using ActionFunction = bool (*)(Character *);
+/**
+ * @brief type for function to be called while a character is in a specific state
+ * @note TODO might replace the second parameter with a pointer to Level
+ * @param character pointer to character
+ * @param distanceMap   distances for every coordinate to something ...
+ */
 using StateFunction = bool (*)(Character *, std::vector<std::vector<int>>); 
+/// forward declaration for AnimationTrigger
 class Animation;
+/**
+ * @brief type for function to be called along with a frame in an animation
+ * @note to be used for e.g. splash-animations, ...
+ * @param animation pointer to animation
+ */
 using AnimationTrigger = void (*)(Animation *);
+/**
+ * @brief type for an animation frame
+ * @param delta time in [s] for which the frame is shown
+ * @param bounds bounds of animation frame in pixels (texture-coordinates)
+ */
 using TimedFrame = std::pair<float, Rectangle>;
+/// list of timed frames
 using AnimationFrames = std::vector<TimedFrame>;
+/// all possible character states
 enum class CharacterState
 {
     CHAR_IDLE = 0,
@@ -31,22 +61,31 @@ enum class CharacterState
     CHAR_SPECIAL_1 = 10,
     CHAR_SPECIAL_2 = 11};
 
+/// Animation structure
 typedef struct Animation
 {
+    /// number of loops for this animation. -1 will loop forever
     int loop;
+    /// triggers, key refers to the frame in the animation frames
     std::map<unsigned int, AnimationTrigger> triggers;
+    /// animation frames
     AnimationFrames frames;
 } Animation;
 
-
+/// Animation status structure
 typedef struct AnimationState
 {
+    /// character state this animation refers to
     CharacterState activeAnimation;
+    /// currently active frame in animation
     unsigned int activeFrame;
+    /// current loop of animation
     unsigned int currentLoop;
+    /// delta/offset [s] in current frame
     float frameDelta;
 } AnimationState;
 
+/// sprite class
 class Sprite
 {
 public:
@@ -63,15 +102,22 @@ public:
         textureOffset({textureBounds.x, textureBounds.y}),
         texture(texture)
     {}
+    /** @brief draw sprite
+     * @param delta delta [s] */
     virtual void draw(float delta);
+    /// texture bounds of sprite
     Rectangle textureBounds;
+    /// screen bounds of sprite
     Rectangle screenBounds;
 protected:
+    /// offset of sprite in sprite sheet in texture coordinates
     Vector2 textureOffset;
 private:
+    /// sprite sheet texture
     Texture texture;
 };
 
+/// Animated sprite
 class AnimatedSprite : public Sprite
 {
 public:
@@ -92,8 +138,9 @@ public:
             animationState{(AnimationState){CharacterState::CHAR_IDLE,0,0,0}} {}
 
     virtual void draw(float delta) override;
-
+    /// animations for character states
     std::map<CharacterState, Animation> animations;
+    /// animation state TODO: make private
     AnimationState animationState;
 };
 
@@ -107,14 +154,20 @@ public:
         worldBounds(worldBounds),
         screenBounds(screenBounds),
             sprite(sprite) {}
+    /// name of the character - mainly for debugging
     std::string name;
+    /// bounds in world coordinates
     Rectangle worldBounds;
+    /// bounds in screen coordinates
     Rectangle screenBounds;
+    /// current state of character
     CharacterState state;
-    std::map<ActionType, ActionFunction> actions;
+    /// TODO check if needed
+    //std::map<ActionType, ActionFunction> actions;
+    /// strategy functions to be called for each character state
     std::map<CharacterState, StateFunction> strategy;
+    /// pointer to animated sprite
     AnimatedSprite *sprite;
 };
-
 
 #endif // CHARACTER_H

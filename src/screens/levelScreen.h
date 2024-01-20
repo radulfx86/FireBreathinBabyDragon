@@ -2,6 +2,7 @@
 #define LEVEL_SCREEN_H
 #include "game.h"
 
+/// info screen
 class InfoScreen
 {
 public:
@@ -18,6 +19,7 @@ private:
     int numTiles;
 };
 
+/// level screen
 class LevelScreen : public GameScreen, public GameState
 {
 public:
@@ -101,6 +103,7 @@ public:
         }
     }
 private:
+    /// TODO total mess below, CLEAN UP @Radulf
     AnimatedSprite *dragonSprite;
     Vector2 charSpeed;
     float charSpeedMax;

@@ -17,39 +17,36 @@ bool getNextState(int &x, int &y, CharacterState &dir, std::vector<std::vector<i
     {
         dist = distanceMap[x-1][y];
         dir = CharacterState::CHAR_WALK_W;
-        std::cerr << __func__ << " left dist: " << dist
-        << " select dir " << static_cast<int>(dir) <<  std::endl;
+        TraceLog(LOG_DEBUG, "%s, left dist: %d", __func__, dist);
         update = true;
     } // right
     if ( x < maxX && distanceMap[x+1][y] < dist )
     {
         dist = distanceMap[x+1][y];
         dir = CharacterState::CHAR_WALK_E;
-        std::cerr << __func__ << " right dist: " << dist
-        << " select dir " << static_cast<int>(dir) <<  std::endl;
+        TraceLog(LOG_DEBUG, "%s, right dist: %d", __func__, dist);
         update = true;
     } // up
     if ( y > 0 && distanceMap[x][y-1] < dist )
     {
         dist = distanceMap[x][y-1];
         dir = CharacterState::CHAR_WALK_N;
-        std::cerr << __func__ << " up dist: " << dist
-        << " select dir " << static_cast<int>(dir) <<  std::endl;
+        TraceLog(LOG_DEBUG, "%s, up dist: %d", __func__, dist);
         update = true;
     } // down
     if ( y < maxY && distanceMap[x][y+1] < dist )
     {
         dist = distanceMap[x][y+1];
         dir = CharacterState::CHAR_WALK_S;
-        std::cerr << __func__ << " down dist: " << dist
-        << " select dir " << static_cast<int>(dir) <<  std::endl;
+        TraceLog(LOG_DEBUG, "%s, down dist: %d", __func__, dist);
         update = true;
     }
     if ( !update )
     {
-        std::cerr << "did not update position - distance at " << dist
-         << "{" << distanceMap[x][y-1] << ", " << distanceMap[x+1][y]
-         << ", "<< distanceMap[x][y+1] << ", " << distanceMap[x-1][y] << "}\n";
+        TraceLog(LOG_DEBUG, "%s did not update position - distance at %d, {%d, %d, %d, %d}",
+            __func__, dist,
+            distanceMap[x][y-1], distanceMap[x+1][y],
+            distanceMap[x][y+1], distanceMap[x-1][y]);
     }
     return true;
 }
@@ -60,16 +57,16 @@ bool idleCharacter(Character *character, std::vector<std::vector<int>> distanceM
     {
         return false;
     }
-    CharacterState dir = CharacterState::CHAR_IDLE;
+    CharacterState newState = CharacterState::CHAR_IDLE;
     int x = static_cast<int>(character->worldBounds.x);
     int y = static_cast<int>(character->worldBounds.y);
-    getNextState(x,y,dir,distanceMap);
-    std::cerr << __func__ << "(" << character->name << ") state " << static_cast<int>(character->state) << " -> " << static_cast<int>(dir) << "\n";
-    if ( dir != CharacterState::CHAR_IDLE )
+    getNextState(x,y,newState,distanceMap);
+    TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
+     static_cast<int>(character->state), static_cast<int>(newState));
+    if ( newState != CharacterState::CHAR_IDLE )
     {
-        std::cerr << "char at " << x << " " << y <<  " not idle any more\n";
-        character->state = dir;
-        character->sprite->animationState.activeAnimation = dir;
+        character->state = newState;
+        character->sprite->animationState.activeAnimation = newState;
     }
     return true;
 }
@@ -80,18 +77,14 @@ bool moveCharacter(Character *character, std::vector<std::vector<int>> distanceM
     {
         return false;
     }
-    std::cerr << __func__ << "(" << character->name << ")\n";
-    CharacterState dir = CharacterState::CHAR_IDLE;
+    CharacterState newState = CharacterState::CHAR_IDLE;
     int x = static_cast<int>(character->worldBounds.x);
     int y = static_cast<int>(character->worldBounds.y);
-    getNextState(x, y, dir, distanceMap);
-    std::cerr << __func__ << "(" << character->name << ")"
-        << "state " << static_cast<int>(character->state)
-        << "(" << static_cast<int>(character->sprite->animationState.activeAnimation)
-        << ") -> " << static_cast<int>(dir)
-        << " x: " << x << " y: " << y << "\n";
-    character->state = dir;
-    character->sprite->animationState.activeAnimation = dir;
+    getNextState(x, y, newState, distanceMap);
+    TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
+     static_cast<int>(character->state), static_cast<int>(newState));
+    character->state = newState;
+    character->sprite->animationState.activeAnimation = newState;
     return true;
 }
 
@@ -146,25 +139,21 @@ void LevelScreen::loadCharacters()
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
     /// NPCs
-    std::cerr << "load NPCs" << std::endl;
+    TraceLog(LOG_INFO, "load NPCs");
     Rectangle npcWorldBounds;
     npcWorldBounds.width = 1;
     npcWorldBounds.height = 1;
     Rectangle npcScreenBounds{0,0,16,16};
     Rectangle npcTextureBounds{0,0,16,16};
-    this->npcTexture = Datastore::getInstance().getTexture("images/villagers_20240112_01.png");
-    const int MAX_NPC = 2;
+    this->npcTexture = Datastore::getInstance().getTexture("images/villagers.png");
+    const int MAX_NPC = 1;
     std::map<CharacterState, Animation> npcAnimations = {
         {CharacterState::CHAR_IDLE, charAnimationIdle},
         {CharacterState::CHAR_DIE, charAnimationDie},
         {CharacterState::CHAR_WALK_N, charAnimationWalkN},
         {CharacterState::CHAR_WALK_E, charAnimationWalkE},
         {CharacterState::CHAR_WALK_S, charAnimationWalkS},
-        {CharacterState::CHAR_WALK_W, charAnimationWalkW}/*,
-        {CharacterState::CHAR_WALK_W, (Animation){ -1, {}, 
-        { { 0.3, {16.0,0.0,16.0,16.0} },
-        { 0.3, {32.0,0.0,16.0,16.0} }
-        }}}*/
+        {CharacterState::CHAR_WALK_W, charAnimationWalkW}
         };
     CharacterState stateMap[] = {CharacterState::CHAR_IDLE,
         CharacterState::CHAR_DIE,
@@ -177,7 +166,7 @@ void LevelScreen::loadCharacters()
         npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
         npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
         npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
-        npcTextureBounds.y = GetRandomValue(0,4) * 16;
+        npcTextureBounds.y = 0;//GetRandomValue(0,4) * 16;
         CharacterState npcState = stateMap[static_cast<int>(GetRandomValue(0,5))];
         npcState = CharacterState::CHAR_IDLE;
         this->characters.push_back(
@@ -189,19 +178,13 @@ void LevelScreen::loadCharacters()
                     npcTexture,
                     npcAnimations,{(AnimationState){npcState,0,0,0}}
                     )));
-                std::cerr << "generate character at " << npcScreenBounds.x
-                    << ", " << npcScreenBounds.y
-                    << " size " << npcScreenBounds.width
-                    << " x " << npcScreenBounds.height 
-                    << " in world at " << npcWorldBounds.x
-                    << ", " << npcWorldBounds.y
-                    << " size " << npcWorldBounds.width
-                    << " x " << npcWorldBounds.height
-                    << " with start state " << static_cast<int>(npcState) << "\n";
+            TraceLog(LOG_DEBUG,"generate character at world: {pos {%.0f,%.0f}, size {%.0f,%.0f}} screen {pos {%.0f,%.0f}, size {%.0f,%.0f}} statue: %d",
+                npcWorldBounds.x, npcWorldBounds.y, npcWorldBounds.width, npcWorldBounds.height,
+                npcScreenBounds.x, npcScreenBounds.y, npcScreenBounds.width, npcScreenBounds.height,
+                static_cast<int>(npcState));
     }
     for (Character *npc : this->characters )
     {
-        std::cerr << "modifying " << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")" << "\n";
         npc->strategy[CharacterState::CHAR_IDLE] = idleCharacter;
         npc->strategy[CharacterState::CHAR_WALK_E] = moveCharacter;
         npc->strategy[CharacterState::CHAR_WALK_W] = moveCharacter;
@@ -218,8 +201,7 @@ void LevelScreen::loadCharacters()
 void LevelScreen::loadObjects()
 {
     TRACE;
-    ///
-    std::cerr << "load Objects" << std::endl;
+    TraceLog(LOG_INFO, "load objects");
     Rectangle objectWorldBounds;
     objectWorldBounds.width = 1;
     objectWorldBounds.height = 2;
@@ -250,7 +232,7 @@ void LevelScreen::loadObjects()
                     objectTexture,
                     objectAnimations)));
     }
-    std::cerr << this->objects.size() <<" Objects loaded" << std::endl;
+    TraceLog(LOG_INFO, "%d objects loaded", this->objects.size());
 }
 
 void LevelScreen::updateDistanceMaps(Vector2 worldTargetPos)
@@ -421,14 +403,11 @@ bool LevelScreen::checkCollision(Rectangle worldBounds)
 
 void LevelScreen::moveNPCs(float delta)
 {
-    std::cerr << __func__ << std::endl;
-    /// TODO - leaving delta unused so I get the compiler warning
     float charSpeed = 10.0;
     for ( Character *npc : this->characters )
     {
         Vector2 deltaPos = { 0, 0};
         bool isMoving = true;
-        //std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
         switch( npc->state )
         {
             case CharacterState::CHAR_WALK_E:
@@ -457,7 +436,8 @@ void LevelScreen::moveNPCs(float delta)
                 npc->worldBounds = tempBounds;
                 npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
                 npc->sprite->screenBounds = npc->screenBounds;
-                std::cerr << __func__ << "(" << npc->name << ") by " << deltaPos.x << " " << deltaPos.y << " to screen pos " << npc->screenBounds.x << " " << npc->screenBounds.y <<"\n";
+                TraceLog(LOG_DEBUG,"%s(%s) by {%.0f,%.0f} to screenPos {%.0f,%.0f}",
+                    __func__, npc->name, deltaPos.x, deltaPos.y, npc->screenBounds.x, npc->screenBounds.y);
             }
         }
     }
@@ -468,10 +448,8 @@ void LevelScreen::updateNPCs(float delta)
 {
     for ( Character *npc : this->characters )
     {
-            //std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
         if ( npc->strategy.count(npc->state) > 0 )
         {
-            std::cerr << __func__ << "(" << npc->name << " with state " << static_cast<int>(npc->state) << "(" << static_cast<int>(npc->sprite->animationState.activeAnimation) << ")"  << "\n";
             npc->strategy[npc->state](npc, this->distanceMap);
         }
     }
@@ -554,7 +532,7 @@ void LevelScreen::draw(float delta)
         {
             for ( int x = 0; x < this->levelSize.x; ++x )
             {
-                Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){x, y, 1,1});
+                Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
                 distanceText = std::to_string(distanceMap[x][y]);
                 DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, RED);
             }
@@ -572,12 +550,6 @@ void LevelScreen::draw(float delta)
             if ( character->sprite )
             {
                 character->sprite->draw(delta);
-                #if 0
-                std::cerr << "draw character at " << character.sprite->screenBounds.x
-                    << ", " << character.sprite->screenBounds.y
-                    << " size " << character.sprite->screenBounds.width
-                    << " x " << character.sprite->screenBounds.height << "\n";
-                    #endif
             }
         }
 

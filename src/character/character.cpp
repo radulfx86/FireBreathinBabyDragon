@@ -19,13 +19,12 @@ void AnimatedSprite::draw(float delta)
             && (this->animations[this->animationState.activeAnimation].loop == -1
                  || this->animations[this->animationState.activeAnimation].loop > this->animationState.currentLoop);
     // update animation
-    #if 0
-    std::cerr << "AnimatedSprite::draw(" << delta
-        << ", animation: " << static_cast<int>(this->animationState.activeAnimation) << "/" << this->animations.size()
-        << ", frame: " << this->animationState.activeFrame << "/" << this->animations[this->animationState.activeAnimation].frames.size()
-        << ", update: " << std::boolalpha << updateAnimation
-        << ", frameDelta: " << this->animationState.frameDelta <<")\n";
-        #endif
+    TraceLog(LOG_DEBUG,"AnimatedSprite::draw(%f) - animation: %d/%d, frame %d/d, update %s, frameDelta: %f",
+        delta,
+        static_cast<int>(this->animationState.activeAnimation), this->animations.size(),
+        this->animationState.activeFrame, this->animations[this->animationState.activeAnimation].frames.size(),
+        updateAnimation ? "true" : "false",
+        this->animationState.frameDelta);
     if ( updateAnimation )
     {
         float tmpDelta = delta + this->animationState.frameDelta;

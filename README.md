@@ -5,9 +5,13 @@ Use it to test code snippets/examples/proof-of-concept
 The initial setup is taken directly from the raylib-repositories
 
 # Build
-initially, go to the build-directory and call "cmake ..". This will download and compile the dependencies (raylib).
+setup the build with
 
-Then build with "make" (while still in the build-directory)
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+
+and build with
+
+make -C build
 
 # Setup
 no further setup necessary. all essential artwork is already in the images directory

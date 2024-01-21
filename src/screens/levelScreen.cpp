@@ -50,7 +50,7 @@ void LevelScreen::loadCharacters()
 
     Rectangle playerWorldBounds{100,100,64,64};
     Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
-    CharacterStatusValues initialPlayerStats = {10,10};
+    WorldObjectStatus initialPlayerStats = {10,10};
     this->player = new Character("player", CharacterState::CHAR_IDLE, initialPlayerStats, playerWorldBounds, playerScreenBounds, new AnimatedSprite(
         {0.0,0.0,32.0,32.0},
         {100.0,100.0,64.0,64.0},
@@ -67,7 +67,7 @@ void LevelScreen::loadCharacters()
     Rectangle npcWorldBounds;
     npcWorldBounds.width = 1;
     npcWorldBounds.height = 1;
-    CharacterStatusValues initialNPCStats = {10,10};
+    WorldObjectStatus initialNPCStats = {10,10};
     Rectangle npcScreenBounds{0,0,16,16};
     Rectangle npcTextureBounds{0,0,16,16};
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers.png");
@@ -132,7 +132,7 @@ void LevelScreen::loadObjects()
     Rectangle objectWorldBounds;
     objectWorldBounds.width = 1;
     objectWorldBounds.height = 2;
-    CharacterStatusValues initialObjectStats = {10,10};
+    WorldObjectStatus initialObjectStats = {10,10};
     Rectangle objectScreenBounds{0,0,1,1};
     Rectangle objectTextureBounds{0,0,16,32};
     this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
@@ -215,6 +215,11 @@ void LevelScreen::loadTiles()
     this->tiles.updateCamera(this->camera);
 }
 
+void LevelScreen::loadUI()
+{
+    this->ui = new UI({0,0}, 2.0, &this->player->stats);
+}
+
 void LevelScreen::initialize()
 {
     TRACE;
@@ -225,13 +230,15 @@ void LevelScreen::initialize()
     this->camera.zoom = 1.0;
     //SetTargetFPS(-1);
 
-    this->infoScreen = new InfoScreen({200,10});
+    this->infoScreen = new InfoScreen({400,10});
     
     loadTiles();
 
     loadObjects();
 
     loadCharacters();
+
+    loadUI();
 
     for (int i = 0; i < 4; ++i )
     {
@@ -522,7 +529,7 @@ void LevelScreen::draw(float delta)
             }
         }
 
-        player->sprite->draw(delta);
+        this->ui->draw(delta);
 
         this->infoScreen->draw(delta);
     EndDrawing();

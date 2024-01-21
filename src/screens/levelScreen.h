@@ -1,6 +1,7 @@
 #ifndef LEVEL_SCREEN_H
 #define LEVEL_SCREEN_H
 #include "game.h"
+#include "ui.h"
 
 /// info screen
 class InfoScreen
@@ -121,6 +122,7 @@ private:
     void loadCharacters();
     void loadObjects();
     void loadTiles();
+    void loadUI();
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
@@ -134,6 +136,8 @@ private:
     std::vector<Character*> objects;
     std::vector<Character*> drawableObjects;
     Character *player;
+
+    UI *ui;
 
     Texture2D objectTexture, npcTexture;
 

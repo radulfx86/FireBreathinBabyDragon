@@ -70,7 +70,7 @@ enum class CharacterState
     CHAR_SPECIAL_2 = 11};
 
 /// character status values
-typedef struct CharacterStatusValues
+typedef struct WorldObjectStatus
 {
     /// hitpoints
     int HP;
@@ -165,7 +165,7 @@ public:
 class Character
 {
 public:
-    Character(std::string name, CharacterState state, CharacterStatusValues stats, Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
+    Character(std::string name, CharacterState state, WorldObjectStatus stats, Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
         : name(name),
         state(state),
         stats(stats),
@@ -187,7 +187,7 @@ public:
     /// pointer to animated sprite
     AnimatedSprite *sprite;
     /// character stats
-    CharacterStatusValues stats;
+    WorldObjectStatus stats;
 };
 
 #endif // CHARACTER_H

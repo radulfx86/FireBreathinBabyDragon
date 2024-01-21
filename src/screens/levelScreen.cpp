@@ -19,13 +19,11 @@ void InfoScreen::draw(float delta)
         sumDelta -= 1.0;
         frameCnt = 0;
     }
-    BeginDrawing();
-        /// TODO make this stuff dynamic, liek the demo-list
-        DrawText(fpsText.c_str(), this->origin.x + 0, this->origin.y + 0,30,ORANGE);
-        DrawText(scaleText.c_str(), this->origin.x + 150, this->origin.y + 0,30,ORANGE);
-        DrawText(this->tileText.c_str(), this->origin.x + 0, this->origin.y + 30, 30, BLUE);
-        DrawText(this->distanceMapText.c_str(), this->origin.x + 0, this->origin.y + 60, 30, WHITE);
-    EndDrawing();
+    /// TODO make this stuff dynamic, liek the demo-list
+    DrawText(fpsText.c_str(), this->origin.x + 0, this->origin.y + 0,30,ORANGE);
+    DrawText(scaleText.c_str(), this->origin.x + 150, this->origin.y + 0,30,ORANGE);
+    DrawText(this->tileText.c_str(), this->origin.x + 0, this->origin.y + 30, 30, BLUE);
+    DrawText(this->distanceMapText.c_str(), this->origin.x + 0, this->origin.y + 60, 30, WHITE);
 }
 void InfoScreen::setActiveDistanceMap(DistanceMapType selectedDebugDistanceMap){
     this->selectedDebugDistanceMap = selectedDebugDistanceMap;
@@ -413,10 +411,19 @@ void LevelScreen::update(float delta)
         DebugStats::getInstance().printStats();
     }
     // cycle through distance maps - NOTE: write the active distance map somewhere
+    static bool isKeyQPressed = true;
     if ( IsKeyDown(KEY_Q) )
     {
-        selectedDebugDistanceMap = static_cast<DistanceMapType>((static_cast<int>(selectedDebugDistanceMap) + 1 ) % this->distanceMaps.size());
-        infoScreen->setActiveDistanceMap(selectedDebugDistanceMap);
+        if ( !isKeyQPressed )
+        {
+            selectedDebugDistanceMap = static_cast<DistanceMapType>((static_cast<int>(selectedDebugDistanceMap) + 1 ) % this->distanceMaps.size());
+            infoScreen->setActiveDistanceMap(selectedDebugDistanceMap);   
+        }
+        isKeyQPressed = true;
+    }
+    else
+    {
+        isKeyQPressed = false;
     }
     float zoomDelta = GetMouseWheelMove();
     bool needsUpdate = false;
@@ -458,7 +465,6 @@ void LevelScreen::update(float delta)
     /// TODO z-sort characters and objects !!!
 
     this->draw(delta);
-    this->infoScreen->draw(delta);
 }
 void LevelScreen::sortDrawableObjects()
 {
@@ -510,6 +516,7 @@ void LevelScreen::draw(float delta)
 
         player->sprite->draw(delta);
 
+        this->infoScreen->draw(delta);
     EndDrawing();
 
 }

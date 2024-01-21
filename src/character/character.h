@@ -6,6 +6,14 @@
 #include <vector>
 #include <string>
 
+const int FRAMESKIP_MAX = 10.0;
+
+using DistanceMapType = enum { FIRE_DISTANCE = 0,
+                               PLAYER_DISTANCE = 1,
+                               VILLAGE_DISTANCE = 2,
+                               MAGE_DISTANCE = 3 };
+using DistanceMap = std::vector<std::vector<int>>;
+using MappedDistanceMaps = std::map<int,DistanceMap>;
 /**
  * @brief type for direction
  * @note unused, delete if not used later
@@ -28,7 +36,7 @@ using ActionFunction = bool (*)(Character *);
  * @param character pointer to character
  * @param distanceMap   distances for every coordinate to something ...
  */
-using StateFunction = bool (*)(Character *, std::vector<std::vector<int>>); 
+using StateFunction = bool (*)(Character *, MappedDistanceMaps); 
 /// forward declaration for AnimationTrigger
 class Animation;
 /**
@@ -60,6 +68,15 @@ enum class CharacterState
     CHAR_ATTACK_W = 9,
     CHAR_SPECIAL_1 = 10,
     CHAR_SPECIAL_2 = 11};
+
+/// character status values
+typedef struct CharacterStatusValues
+{
+    /// hitpoints
+    int HP;
+    /// energy points
+    int EP;
+};
 
 /// Animation structure
 typedef struct Animation
@@ -148,9 +165,10 @@ public:
 class Character
 {
 public:
-    Character(std::string name, CharacterState state, Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
+    Character(std::string name, CharacterState state, CharacterStatusValues stats, Rectangle worldBounds, Rectangle screenBounds, AnimatedSprite *sprite)
         : name(name),
         state(state),
+        stats(stats),
         worldBounds(worldBounds),
         screenBounds(screenBounds),
             sprite(sprite) {}
@@ -168,6 +186,8 @@ public:
     std::map<CharacterState, StateFunction> strategy;
     /// pointer to animated sprite
     AnimatedSprite *sprite;
+    /// character stats
+    CharacterStatusValues stats;
 };
 
 #endif // CHARACTER_H

@@ -91,7 +91,7 @@ void LevelScreen::loadCharacters()
         npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
         npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
         npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
-        npcTextureBounds.y = 0;//GetRandomValue(0,4) * 16;
+        npcTextureBounds.y = GetRandomValue(1,3) * 16;
         CharacterState npcState = stateMap[static_cast<int>(GetRandomValue(0,5))];
         npcState = CharacterState::CHAR_IDLE;
         this->characters.push_back(
@@ -136,7 +136,7 @@ void LevelScreen::loadObjects()
     Rectangle objectScreenBounds{0,0,1,1};
     Rectangle objectTextureBounds{0,0,16,32};
     this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
-    const int MAX_OBJECTS = 2;
+    const int MAX_OBJECTS = 20;
     std::map<CharacterState, Animation> objectAnimations = 
         {{CharacterState::CHAR_IDLE,
             (Animation){-1, {},
@@ -333,9 +333,17 @@ void LevelScreen::movePlayer(float delta)
     }
 }
 
-bool LevelScreen::checkCollision(Rectangle worldBounds)
+bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
 {
-    // TODO
+    /// TODO HELL NO THIS IS SLOW - USE A QUADTREE OR SOMETHING; BUT NOT THIS WAAAAAAAAH
+    /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
+    for ( Character *target : this->drawableObjects )
+    {
+        if ( target != source && CheckCollisionRecs(worldBounds, target->worldBounds))
+        {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -369,7 +377,7 @@ void LevelScreen::moveNPCs(float delta)
             Rectangle tempBounds = npc->worldBounds;
             tempBounds.x += deltaPos.x;
             tempBounds.y += deltaPos.y;
-            if ( not this->checkCollision(tempBounds) )
+            if ( not this->checkCollision(npc, tempBounds) )
             {
                 npc->worldBounds = tempBounds;
                 npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);

@@ -124,7 +124,7 @@ private:
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
-    bool checkCollision(Rectangle worldBounds);
+    bool checkCollision(Character *source, Rectangle worldBounds);
     void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
     void sortDrawableObjects();
     Camera2D camera;

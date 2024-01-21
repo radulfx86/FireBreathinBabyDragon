@@ -59,6 +59,7 @@ void LevelScreen::loadCharacters()
         Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
         {{CharacterState::CHAR_IDLE, idleDragon}}
     ));
+    this->drawableObjects.push_back(player);
 
     InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
@@ -122,6 +123,7 @@ void LevelScreen::loadCharacters()
         npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::moveCharacter;
         npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::moveCharacter;
         npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::moveCharacter;
+        this->drawableObjects.push_back(npc);
     }
 }
 
@@ -152,7 +154,7 @@ void LevelScreen::loadObjects()
         objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
         objectTextureBounds.y = GetRandomValue(0,5) * 32;
         this->objects.push_back(
-            Character("OBJECT", CharacterState::CHAR_IDLE, initialObjectStats, objectWorldBounds,
+            new Character("OBJECT", CharacterState::CHAR_IDLE, initialObjectStats, objectWorldBounds,
                 objectScreenBounds,
                 new AnimatedSprite(
                     objectTextureBounds,
@@ -161,27 +163,26 @@ void LevelScreen::loadObjects()
                     objectAnimations)));
     }
     TraceLog(LOG_INFO, "%d objects loaded", this->objects.size());
+    for (Character *obj : this->objects )
+    {
+        this->drawableObjects.push_back(obj);
+    }
 }
 
-void LevelScreen::updateDistanceMaps(Vector2 worldTargetPos)
+void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
 {
     if ( nullptr == this->player )
     {
         return;
     }
     /// TODO: do proper flood-fill or anything better than this !!!
-    for ( int i = 0; i < 4; ++i )
+    for ( int y = 0; y < this->levelSize.y; ++y )
     {
-        
-        distanceMaps[static_cast<DistanceMapType>(i)].resize(levelSize.x,std::vector<int>(levelSize.y));
-        for ( int y = 0; y < this->levelSize.y; ++y )
+        for ( int x = 0; x < this->levelSize.x; ++x )
         {
-            for ( int x = 0; x < this->levelSize.x; ++x )
-            {
-                // do manhattan distance
-                Vector2 delta = {x - worldTargetPos.x, y - worldTargetPos.y};
-                distanceMaps[static_cast<DistanceMapType>(i)][x][y] = fabs(delta.x) + fabs(delta.y);
-            }
+            // do manhattan distance
+            Vector2 delta = {x - worldTargetPos.x, y - worldTargetPos.y};
+            distanceMaps[static_cast<DistanceMapType>(selectedDistanceMap)][x][y] = fabs(delta.x) + fabs(delta.y);
         }
     }
 }
@@ -234,7 +235,11 @@ void LevelScreen::initialize()
 
     loadCharacters();
 
-    updateDistanceMaps({this->levelSize.x/2, this->levelSize.y/2});
+    for (int i = 0; i < 4; ++i )
+    {
+        distanceMaps[static_cast<DistanceMapType>(i)].resize(levelSize.x,std::vector<int>(levelSize.y));
+        updateDistanceMap(static_cast<DistanceMapType>(i), {this->levelSize.x/2, this->levelSize.y/2});
+    }
 }
 void LevelScreen::finalize()
 {
@@ -404,7 +409,7 @@ void LevelScreen::update(float delta)
             this->isDone = true;
             PlaySound(this->fireBreath);
         }
-        this->updateDistanceMaps(LevelScreen::ScreenToWorld(this,GetMousePosition()));
+        this->updateDistanceMap(this->selectedDebugDistanceMap,LevelScreen::ScreenToWorld(this,GetMousePosition()));
         DebugStats::getInstance().printStats();
     }
     // cycle through distance maps - NOTE: write the active distance map somewhere
@@ -438,10 +443,10 @@ void LevelScreen::update(float delta)
             character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
             character->sprite->screenBounds = character->screenBounds;
         }
-        for ( Character &obj : this->objects )
+        for ( Character *obj : this->objects )
         {
-            obj.screenBounds = LevelScreen::WorldToScreen(this, obj.worldBounds);
-            obj.sprite->screenBounds = obj.screenBounds;
+            obj->screenBounds = LevelScreen::WorldToScreen(this, obj->worldBounds);
+            obj->sprite->screenBounds = obj->screenBounds;
         }
     }
 
@@ -454,6 +459,15 @@ void LevelScreen::update(float delta)
 
     this->draw(delta);
     this->infoScreen->draw(delta);
+}
+void LevelScreen::sortDrawableObjects()
+{
+    // sort by y-value
+    std::sort(this->drawableObjects.begin(), this->drawableObjects.end(),
+        [](Character *a, Character *b) {
+            return a->screenBounds.y < b->screenBounds.y;
+        }
+    );
 }
 
 void LevelScreen::draw(float delta)
@@ -469,6 +483,7 @@ void LevelScreen::draw(float delta)
         //infoScreen->setNumTiles(numTiles);
         /// start debug
         std::string distanceText;
+        static Color distanceMapColor[] = {RED, BLUE, PURPLE, YELLOW};
         for ( int y = 0; y < this->levelSize.y; ++y )
         {
             for ( int x = 0; x < this->levelSize.x; ++x )
@@ -478,23 +493,18 @@ void LevelScreen::draw(float delta)
                     Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
                     distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
                     distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
-                    DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, RED);
+                    DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, distanceMapColor[this->selectedDebugDistanceMap]);
                 }
             }
         }
         
-        for ( Character &object : this->objects )
+        sortDrawableObjects();
+
+        for ( Character *object : this->drawableObjects )
         {
-            if ( object.sprite )
+            if ( object->sprite )
             {
-                object.sprite->draw(delta);
-            }
-        }
-        for ( Character *character : this->characters )
-        {
-            if ( character->sprite )
-            {
-                character->sprite->draw(delta);
+                object->sprite->draw(delta);
             }
         }
 

@@ -125,12 +125,14 @@ private:
     void moveNPCs(float delta);
     void updateNPCs(float delta);
     bool checkCollision(Rectangle worldBounds);
-    void updateDistanceMaps(Vector2 worldTargetPos);
+    void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
+    void sortDrawableObjects();
     Camera2D camera;
     Vector2 levelSize;
 
     std::vector<Character*> characters;
-    std::vector<Character> objects;
+    std::vector<Character*> objects;
+    std::vector<Character*> drawableObjects;
     Character *player;
 
     Texture2D objectTexture, npcTexture;

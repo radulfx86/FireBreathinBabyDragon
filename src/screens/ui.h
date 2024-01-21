@@ -1,6 +1,7 @@
 #ifndef UI_H
 #define UI_H
 #include "character.h"
+#include "datastore.h"
 
 class UI
 {
@@ -10,7 +11,7 @@ public:
         scale(scale),
         playerState(playerState)
     {
-        this->texture = LoadTexture("images/ui.png");
+        this->texture = Datastore::getInstance().getTexture("images/ui.png");
         this->lifeSprite = new AnimatedSprite(
             // texture bounds
             {0.0,0.0,16.0,16.0},

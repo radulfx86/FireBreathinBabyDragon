@@ -496,9 +496,6 @@ void LevelScreen::draw(float delta)
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);
-            DrawRectangleLinesEx(this->player->sprite->screenBounds, 1.0, RED);
-            DrawText("this is the LEVEL", 100,100,30,ORANGE);
-            DrawText("click on the dragon to exit", 100,300,30,ORANGE);
 
         //int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);

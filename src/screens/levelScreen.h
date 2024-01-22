@@ -27,7 +27,7 @@ private:
 class LevelScreen : public GameScreen, public GameState
 {
 public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
+    LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
     //, tileSize({16,16})
      {}
     virtual void initialize() override;
@@ -42,11 +42,19 @@ public:
 
     virtual void update(float delta) override;
 
-    static bool checkDone(GameState *caller)
+    static bool checkWin(GameState *caller)
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
         {
             return me->isDone;
+        }
+        return false;
+    }
+    static bool checkGameover(GameState *caller)
+    {
+        if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
+        {
+            return me->isGameOver;
         }
         return false;
     }
@@ -123,8 +131,10 @@ private:
     Vector2 charSpeed;
     float charSpeedMax;
     float charAcc;
+    int winThreshold;
     Sound fireBreath;
     bool isDone;
+    bool isGameOver;
     float scale;
     /// offset - in world-coordinates for now
     Vector2 offset;
@@ -139,8 +149,10 @@ private:
     void moveNPCs(float delta);
     void updateNPCs(float delta);
     bool checkCollision(Character *source, Rectangle worldBounds);
+    Character* getCollision(Character *source, Rectangle worldBounds);
     void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
     void sortDrawableObjects();
+    void checkWinCondition();
     Camera2D camera;
     Vector2 levelSize;
 

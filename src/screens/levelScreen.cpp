@@ -143,6 +143,7 @@ void LevelScreen::loadObjects()
     Rectangle objectTextureBounds{0,0,32,32};
     this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
     const int MAX_OBJECTS = 20;
+    this->winThreshold = MAX_OBJECTS/10;
     std::map<CharacterState, Animation> objectAnimations = 
         {{CharacterState::CHAR_IDLE,
             (Animation){-1, {},
@@ -349,6 +350,12 @@ void LevelScreen::movePlayer(float delta)
     this->player->screenBounds.y = screenPos.y;
     this->player->sprite->screenBounds = this->player->screenBounds;
 
+    /// simple NPC kill
+    Character *hit = this->getCollision(this->player, this->player->worldBounds);
+    if ( hit )
+    {
+        hit->stats.HP = 0;
+    }
     updateDistanceMap(DistanceMapType::PLAYER_DISTANCE, {this->player->worldBounds.x, this->player->worldBounds.y});
 }
 
@@ -364,6 +371,20 @@ bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
         }
     }
     return false;
+}
+
+Character* LevelScreen::getCollision(Character *source, Rectangle worldBounds)
+{
+    /// TODO HELL NO THIS IS SLOW - USE A QUADTREE OR SOMETHING; BUT NOT THIS WAAAAAAAAH
+    /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
+    for ( Character *target : this->drawableObjects )
+    {
+        if ( target != source && CheckCollisionRecs(worldBounds, target->worldBounds))
+        {
+            return target;
+        }
+    }
+    return nullptr;
 }
 
 void LevelScreen::moveNPCs(float delta)
@@ -417,6 +438,30 @@ void LevelScreen::updateNPCs(float delta)
         {
             npc->strategy[npc->state](npc, this->distanceMaps);
         }
+    }
+}
+void LevelScreen::checkWinCondition()
+{
+    if ( player->stats.HP > 0 )
+    {
+        int sumRemaining = 0;
+        for ( Character *obj : this->objects )
+        {
+            if ( obj->stats.HP > 0 )
+            {
+                ++sumRemaining;
+            }
+        }
+        std::cerr << "sumRemaining: " << sumRemaining << " threshold: " << this->winThreshold << "\n";
+        if ( sumRemaining < this->winThreshold )
+        {
+            this->isDone = true;
+        }
+    }
+    else
+    {
+        std::cerr << "gameover, player HP: " << player->stats.HP << "\n";
+        this->isGameOver = true;
     }
 }
 
@@ -484,6 +529,8 @@ void LevelScreen::update(float delta)
         }
     }
 
+    checkWinCondition();
+
     updateNPCs(delta);
 
     movePlayer(delta);
@@ -532,7 +579,7 @@ void LevelScreen::draw(float delta)
 
         for ( Character *object : this->drawableObjects )
         {
-            if ( object->sprite )
+            if ( object->sprite && object->stats.HP > 0 )
             {
                 object->sprite->draw(delta);
             }

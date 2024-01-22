@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}
     src/screens/splashScreen.cpp
     src/screens/levelScreen.cpp
     src/screens/exitScreen.cpp
+    src/screens/gameoverScreen.cpp
     src/screens/ui.cpp
     src/strategy/villagerStrategy.cpp
     src/utils/datastore.cpp

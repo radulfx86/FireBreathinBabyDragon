@@ -7,7 +7,7 @@
 #include "splashScreen.h"
 #include "levelScreen.h"
 #include "exitScreen.h"
-
+#include "gameoverScreen.h"
 
 void Game::initialize()
 {
@@ -15,11 +15,14 @@ void Game::initialize()
     SplashScreen *splashScreen = new SplashScreen(this);
     LevelScreen *levelScreen = new LevelScreen(this);
     ExitScreen *exitScreen = new ExitScreen(3.0, this);
+    GameoverScreen *gameoverScreen = new GameoverScreen(4.0, this);
     this->states.push_back(splashScreen);
     this->states.push_back(levelScreen);
     this->states.push_back(exitScreen);
-    this->transitions.push_back(Transition(splashScreen, levelScreen, SplashScreen::checkDone));
-    this->transitions.push_back(Transition(levelScreen, exitScreen, levelScreen->checkDone));
+    this->states.push_back(gameoverScreen);
+    this->transitions.push_back(Transition(splashScreen, levelScreen, SplashScreen::checkWin));
+    this->transitions.push_back(Transition(levelScreen, exitScreen, levelScreen->checkWin));
+    this->transitions.push_back(Transition(levelScreen, gameoverScreen, levelScreen->checkGameover));
     for ( auto state : this->states )
     {
         if ( GameScreen *screen = dynamic_cast<GameScreen*>(state) )

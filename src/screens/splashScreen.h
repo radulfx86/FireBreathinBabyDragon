@@ -19,7 +19,7 @@ public:
 
     virtual void update(float delta) override;
 
-    static bool checkDone(GameState *caller)
+    static bool checkWin(GameState *caller)
     {
         if ( SplashScreen *me = dynamic_cast<SplashScreen*>(caller) )
         {

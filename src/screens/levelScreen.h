@@ -1,6 +1,7 @@
 #ifndef LEVEL_SCREEN_H
 #define LEVEL_SCREEN_H
 #include "game.h"
+#include "ui.h"
 
 /// info screen
 class InfoScreen
@@ -10,6 +11,7 @@ public:
     void draw(float delta);
     std::string scaleText;
     void setNumTiles(int numTiles);
+    void setActiveDistanceMap(DistanceMapType selectedDebugDistanceMap);
 private:
     Vector2 origin;
     float sumDelta;
@@ -17,13 +19,15 @@ private:
     std::string fpsText;
     std::string tileText;
     int numTiles;
+    std::string distanceMapText;
+    DistanceMapType selectedDebugDistanceMap;
 };
 
 /// level screen
 class LevelScreen : public GameScreen, public GameState
 {
 public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false), scale(1), offset({0,0})
+    LevelScreen(Game *game) : GameScreen(game), isDone(false), scale(1), offset({0,0}), selectedDebugDistanceMap(static_cast<DistanceMapType>(0))
     //, tileSize({16,16})
      {}
     virtual void initialize() override;
@@ -104,7 +108,6 @@ public:
     }
 private:
     /// TODO total mess below, CLEAN UP @Radulf
-    AnimatedSprite *dragonSprite;
     Vector2 charSpeed;
     float charSpeedMax;
     float charAcc;
@@ -119,22 +122,30 @@ private:
     void loadCharacters();
     void loadObjects();
     void loadTiles();
+    void loadUI();
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
-    bool checkCollision(Rectangle worldBounds);
-    void updateDistanceMaps(Vector2 worldTargetPos);
+    bool checkCollision(Character *source, Rectangle worldBounds);
+    void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
+    void sortDrawableObjects();
     Camera2D camera;
     Vector2 levelSize;
 
     std::vector<Character*> characters;
-    std::vector<Character> objects;
+    std::vector<Character*> objects;
+    std::vector<Character*> drawableObjects;
     Character *player;
+
+    UI *ui;
 
     Texture2D objectTexture, npcTexture;
 
-    /// TODO first prototype of distance map. split into multiple maps (with better types) later
-    std::vector<std::vector<int>> distanceMap;
+    /// distance maps - mapped per distance-type
+    MappedDistanceMaps distanceMaps;
+    
+    DistanceMapType selectedDebugDistanceMap;
+
 };
 
 #endif // LEVEL_SCREEN_H

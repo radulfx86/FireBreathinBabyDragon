@@ -1,5 +1,5 @@
 #include "character.h"
-#include <iostream>
+#include "debugStats.h"
 
 void Sprite::draw(float delta)
 {
@@ -28,7 +28,12 @@ void AnimatedSprite::draw(float delta)
     if ( updateAnimation )
     {
         float tmpDelta = delta + this->animationState.frameDelta;
+        if ( tmpDelta > 1.0 )
+        {
+            tmpDelta = this->animationState.frameDelta;
+        }
 
+        /// with too many NPC the program gets stuck in this loop with tmpDelta rediculously high
         while ( tmpDelta > this->animations[this->animationState.activeAnimation].frames[this->animationState.activeFrame].first )
         {
             tmpDelta -= this->animations[this->animationState.activeAnimation].frames[this->animationState.activeFrame].first;
@@ -41,6 +46,12 @@ void AnimatedSprite::draw(float delta)
             if ( nextFrame != this->animationState.activeFrame )
             {
                 this->animationState.activeFrame = nextFrame;
+            }
+            if ( tmpDelta > FRAMESKIP_MAX )
+            {
+                DebugStats::getInstance().addFrameSkip();
+                tmpDelta = this->animationState.frameDelta;
+                break;
             }
         }
         this->animationState.frameDelta = tmpDelta;

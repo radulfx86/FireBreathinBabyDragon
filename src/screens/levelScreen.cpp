@@ -1,92 +1,10 @@
 #include "levelScreen.h"
 #include "datastore.h"
 #include "characterAnimations.h"
+#include "villagerStrategy.h"
+#include "debugStats.h"
 #include <sstream>
 #include <cmath>
-
-bool getNextState(int &x, int &y, CharacterState &dir, std::vector<std::vector<int>> distanceMap)
-{
-    const int maxX = distanceMap.size()-1;
-    const int maxY = distanceMap[0].size()-1;
-    x = (x < 0 ) ? 0 : x > maxX ? maxX : x;
-    y = (y < 0 ) ? 0 : y > maxY ? maxY : y;
-    int dist = distanceMap[x][y];
-    bool update = false;
-    // left
-    if ( x > 0 && distanceMap[x-1][y] < dist )
-    {
-        dist = distanceMap[x-1][y];
-        dir = CharacterState::CHAR_WALK_W;
-        TraceLog(LOG_DEBUG, "%s, left dist: %d", __func__, dist);
-        update = true;
-    } // right
-    if ( x < maxX && distanceMap[x+1][y] < dist )
-    {
-        dist = distanceMap[x+1][y];
-        dir = CharacterState::CHAR_WALK_E;
-        TraceLog(LOG_DEBUG, "%s, right dist: %d", __func__, dist);
-        update = true;
-    } // up
-    if ( y > 0 && distanceMap[x][y-1] < dist )
-    {
-        dist = distanceMap[x][y-1];
-        dir = CharacterState::CHAR_WALK_N;
-        TraceLog(LOG_DEBUG, "%s, up dist: %d", __func__, dist);
-        update = true;
-    } // down
-    if ( y < maxY && distanceMap[x][y+1] < dist )
-    {
-        dist = distanceMap[x][y+1];
-        dir = CharacterState::CHAR_WALK_S;
-        TraceLog(LOG_DEBUG, "%s, down dist: %d", __func__, dist);
-        update = true;
-    }
-    if ( !update )
-    {
-        TraceLog(LOG_DEBUG, "%s did not update position - distance at %d, {%d, %d, %d, %d}",
-            __func__, dist,
-            distanceMap[x][y-1], distanceMap[x+1][y],
-            distanceMap[x][y+1], distanceMap[x-1][y]);
-    }
-    return true;
-}
-
-bool idleCharacter(Character *character, std::vector<std::vector<int>> distanceMap)
-{
-    if ( nullptr == character )
-    {
-        return false;
-    }
-    CharacterState newState = CharacterState::CHAR_IDLE;
-    int x = static_cast<int>(character->worldBounds.x);
-    int y = static_cast<int>(character->worldBounds.y);
-    getNextState(x,y,newState,distanceMap);
-    TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
-     static_cast<int>(character->state), static_cast<int>(newState));
-    if ( newState != CharacterState::CHAR_IDLE )
-    {
-        character->state = newState;
-        character->sprite->animationState.activeAnimation = newState;
-    }
-    return true;
-}
-
-bool moveCharacter(Character *character, std::vector<std::vector<int>> distanceMap)
-{
-    if ( nullptr == character )
-    {
-        return false;
-    }
-    CharacterState newState = CharacterState::CHAR_IDLE;
-    int x = static_cast<int>(character->worldBounds.x);
-    int y = static_cast<int>(character->worldBounds.y);
-    getNextState(x, y, newState, distanceMap);
-    TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
-     static_cast<int>(character->state), static_cast<int>(newState));
-    character->state = newState;
-    character->sprite->animationState.activeAnimation = newState;
-    return true;
-}
 
 void InfoScreen::draw(float delta)
 {
@@ -101,12 +19,17 @@ void InfoScreen::draw(float delta)
         sumDelta -= 1.0;
         frameCnt = 0;
     }
-    BeginDrawing();
-        /// TODO make this stuff dynamic, liek the demo-list
-        DrawText(fpsText.c_str(), this->origin.x + 0, this->origin.y + 0,30,ORANGE);
-        DrawText(scaleText.c_str(), this->origin.x + 150, this->origin.y + 0,30,ORANGE);
-        DrawText(this->tileText.c_str(), this->origin.x + 0, this->origin.y + 30, 30, BLUE);
-    EndDrawing();
+    /// TODO make this stuff dynamic, liek the demo-list
+    DrawText(fpsText.c_str(), this->origin.x + 0, this->origin.y + 0,30,ORANGE);
+    DrawText(scaleText.c_str(), this->origin.x + 150, this->origin.y + 0,30,ORANGE);
+    DrawText(this->tileText.c_str(), this->origin.x + 0, this->origin.y + 30, 30, BLUE);
+    DrawText(this->distanceMapText.c_str(), this->origin.x + 0, this->origin.y + 60, 30, WHITE);
+}
+void InfoScreen::setActiveDistanceMap(DistanceMapType selectedDebugDistanceMap){
+    this->selectedDebugDistanceMap = selectedDebugDistanceMap;
+    std::stringstream sstr;
+    sstr << "selected distance map >" << static_cast<int>(selectedDebugDistanceMap) << "<";
+    this->distanceMapText = sstr.str();
 }
 void InfoScreen::setNumTiles(int numTiles)
 {
@@ -120,12 +43,6 @@ void InfoScreen::setNumTiles(int numTiles)
 
 void LevelScreen::loadCharacters()
 {
-    this->dragonSprite = new AnimatedSprite(
-        {0.0,0.0,32.0,32.0},
-        {100.0,100.0,64.0,64.0},
-        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
-        {{CharacterState::CHAR_IDLE, idleDragon}}
-    );
 
     this->charSpeedMax = 200.0;
     this->charSpeed = {100.0f, 0.0f};
@@ -133,7 +50,14 @@ void LevelScreen::loadCharacters()
 
     Rectangle playerWorldBounds{100,100,64,64};
     Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
-    this->player = new Character("player", CharacterState::CHAR_IDLE, playerWorldBounds, playerScreenBounds, this->dragonSprite);
+    WorldObjectStatus initialPlayerStats = {10,10};
+    this->player = new Character("player", CharacterState::CHAR_IDLE, initialPlayerStats, playerWorldBounds, playerScreenBounds, new AnimatedSprite(
+        {0.0,0.0,32.0,32.0},
+        {100.0,100.0,64.0,64.0},
+        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
+        {{CharacterState::CHAR_IDLE, idleDragon}}
+    ));
+    this->drawableObjects.push_back(player);
 
     InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
@@ -143,10 +67,11 @@ void LevelScreen::loadCharacters()
     Rectangle npcWorldBounds;
     npcWorldBounds.width = 1;
     npcWorldBounds.height = 1;
+    WorldObjectStatus initialNPCStats = {10,10};
     Rectangle npcScreenBounds{0,0,16,16};
     Rectangle npcTextureBounds{0,0,16,16};
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers.png");
-    const int MAX_NPC = 1;
+    const int MAX_NPC = 100;
     std::map<CharacterState, Animation> npcAnimations = {
         {CharacterState::CHAR_IDLE, charAnimationIdle},
         {CharacterState::CHAR_DIE, charAnimationDie},
@@ -166,11 +91,13 @@ void LevelScreen::loadCharacters()
         npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
         npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
         npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
-        npcTextureBounds.y = 0;//GetRandomValue(0,4) * 16;
+        npcTextureBounds.y = GetRandomValue(1,3) * 16;
         CharacterState npcState = stateMap[static_cast<int>(GetRandomValue(0,5))];
         npcState = CharacterState::CHAR_IDLE;
         this->characters.push_back(
-            new Character("NPC", npcState, npcWorldBounds,
+            new Character("NPC", npcState,
+                initialNPCStats,
+                npcWorldBounds,
                 npcScreenBounds,
                 new AnimatedSprite(
                     npcTextureBounds,
@@ -185,16 +112,16 @@ void LevelScreen::loadCharacters()
     }
     for (Character *npc : this->characters )
     {
-        npc->strategy[CharacterState::CHAR_IDLE] = idleCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_E] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_W] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_S] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_N] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_N] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_E] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_S] = moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_W] = moveCharacter;
-
+        npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::moveCharacter;
+        npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::moveCharacter;
+        this->drawableObjects.push_back(npc);
     }
 }
 
@@ -205,10 +132,11 @@ void LevelScreen::loadObjects()
     Rectangle objectWorldBounds;
     objectWorldBounds.width = 1;
     objectWorldBounds.height = 2;
+    WorldObjectStatus initialObjectStats = {10,10};
     Rectangle objectScreenBounds{0,0,1,1};
     Rectangle objectTextureBounds{0,0,16,32};
     this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
-    const int MAX_OBJECTS = 2;
+    const int MAX_OBJECTS = 20;
     std::map<CharacterState, Animation> objectAnimations = 
         {{CharacterState::CHAR_IDLE,
             (Animation){-1, {},
@@ -224,7 +152,7 @@ void LevelScreen::loadObjects()
         objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
         objectTextureBounds.y = GetRandomValue(0,5) * 32;
         this->objects.push_back(
-            Character("OBJECT", CharacterState::CHAR_IDLE, objectWorldBounds,
+            new Character("OBJECT", CharacterState::CHAR_IDLE, initialObjectStats, objectWorldBounds,
                 objectScreenBounds,
                 new AnimatedSprite(
                     objectTextureBounds,
@@ -233,9 +161,13 @@ void LevelScreen::loadObjects()
                     objectAnimations)));
     }
     TraceLog(LOG_INFO, "%d objects loaded", this->objects.size());
+    for (Character *obj : this->objects )
+    {
+        this->drawableObjects.push_back(obj);
+    }
 }
 
-void LevelScreen::updateDistanceMaps(Vector2 worldTargetPos)
+void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
 {
     if ( nullptr == this->player )
     {
@@ -248,7 +180,7 @@ void LevelScreen::updateDistanceMaps(Vector2 worldTargetPos)
         {
             // do manhattan distance
             Vector2 delta = {x - worldTargetPos.x, y - worldTargetPos.y};
-            distanceMap[x][y] = fabs(delta.x) + fabs(delta.y);
+            distanceMaps[static_cast<DistanceMapType>(selectedDistanceMap)][x][y] = fabs(delta.x) + fabs(delta.y);
         }
     }
 }
@@ -259,7 +191,7 @@ void LevelScreen::loadTiles()
     const unsigned int tilesX = 40;
     const unsigned int tilesY = 30;
     this->levelSize = {tilesX, tilesY};
-    this->distanceMap.resize(tilesX,std::vector<int>(tilesY));
+    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].resize(tilesX,std::vector<int>(tilesY));
     float tileScaleFactor = 1.0;
     for ( int y = 0; y < tilesY; ++y )
     {
@@ -283,6 +215,11 @@ void LevelScreen::loadTiles()
     this->tiles.updateCamera(this->camera);
 }
 
+void LevelScreen::loadUI()
+{
+    this->ui = new UI({0,0}, 2.0, &this->player->stats);
+}
+
 void LevelScreen::initialize()
 {
     TRACE;
@@ -293,7 +230,7 @@ void LevelScreen::initialize()
     this->camera.zoom = 1.0;
     //SetTargetFPS(-1);
 
-    this->infoScreen = new InfoScreen({200,10});
+    this->infoScreen = new InfoScreen({400,10});
     
     loadTiles();
 
@@ -301,7 +238,13 @@ void LevelScreen::initialize()
 
     loadCharacters();
 
-    updateDistanceMaps({this->levelSize.x/2, this->levelSize.y/2});
+    loadUI();
+
+    for (int i = 0; i < 4; ++i )
+    {
+        distanceMaps[static_cast<DistanceMapType>(i)].resize(levelSize.x,std::vector<int>(levelSize.y));
+        updateDistanceMap(static_cast<DistanceMapType>(i), {this->levelSize.x/2, this->levelSize.y/2});
+    }
 }
 void LevelScreen::finalize()
 {
@@ -316,6 +259,7 @@ void LevelScreen::enter()
 void LevelScreen::exit()
 {
     TRACE;
+    DebugStats::getInstance().printStats();
 }
 
 void LevelScreen::movePlayer(float delta)
@@ -385,19 +329,28 @@ void LevelScreen::movePlayer(float delta)
         this->charSpeed.y = -this->charSpeedMax;
     }
 
+    /// TODO intermediate "solution"
     if ( fabs(this->charSpeed.x) > 1.0f )
     {
-        this->dragonSprite->screenBounds.x += this->charSpeed.x * delta;
+        this->player->sprite->screenBounds.x += this->charSpeed.x * delta;
     }
     if ( fabs(this->charSpeed.y) > 1.0f )
     {
-        this->dragonSprite->screenBounds.y += this->charSpeed.y * delta;
+        this->player->sprite->screenBounds.y += this->charSpeed.y * delta;
     }
 }
 
-bool LevelScreen::checkCollision(Rectangle worldBounds)
+bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
 {
-    // TODO
+    /// TODO HELL NO THIS IS SLOW - USE A QUADTREE OR SOMETHING; BUT NOT THIS WAAAAAAAAH
+    /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
+    for ( Character *target : this->drawableObjects )
+    {
+        if ( target != source && CheckCollisionRecs(worldBounds, target->worldBounds))
+        {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -431,7 +384,7 @@ void LevelScreen::moveNPCs(float delta)
             Rectangle tempBounds = npc->worldBounds;
             tempBounds.x += deltaPos.x;
             tempBounds.y += deltaPos.y;
-            if ( not this->checkCollision(tempBounds) )
+            if ( not this->checkCollision(npc, tempBounds) )
             {
                 npc->worldBounds = tempBounds;
                 npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
@@ -450,7 +403,7 @@ void LevelScreen::updateNPCs(float delta)
     {
         if ( npc->strategy.count(npc->state) > 0 )
         {
-            npc->strategy[npc->state](npc, this->distanceMap);
+            npc->strategy[npc->state](npc, this->distanceMaps);
         }
     }
 }
@@ -464,20 +417,35 @@ void LevelScreen::update(float delta)
     TRACE;
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
     {
-        if( CheckCollisionPointRec(GetMousePosition(), this->dragonSprite->screenBounds
-                    ) )
+        if( CheckCollisionPointRec(GetMousePosition(), this->player->sprite->screenBounds) )
         {
             this->isDone = true;
             PlaySound(this->fireBreath);
         }
-        this->updateDistanceMaps(LevelScreen::ScreenToWorld(this,GetMousePosition()));
+        this->updateDistanceMap(this->selectedDebugDistanceMap,LevelScreen::ScreenToWorld(this,GetMousePosition()));
+        DebugStats::getInstance().printStats();
+    }
+    // cycle through distance maps - NOTE: write the active distance map somewhere
+    static bool isKeyQPressed = true;
+    if ( IsKeyDown(KEY_Q) )
+    {
+        if ( !isKeyQPressed )
+        {
+            selectedDebugDistanceMap = static_cast<DistanceMapType>((static_cast<int>(selectedDebugDistanceMap) + 1 ) % this->distanceMaps.size());
+            infoScreen->setActiveDistanceMap(selectedDebugDistanceMap);   
+        }
+        isKeyQPressed = true;
+    }
+    else
+    {
+        isKeyQPressed = false;
     }
     float zoomDelta = GetMouseWheelMove();
     bool needsUpdate = false;
     if ( zoomDelta != 0.0 )
     {
         /// TODO the zoom is inverted for characters and tiles ... fixing later
-        this->scale = (this->scale + zoomDelta) > 0.3 ? (this->scale + zoomDelta) < 5.0 ? this->scale + zoomDelta : 5.0 : 0.3;
+        //this->scale = (this->scale + zoomDelta) > 0.3 ? (this->scale + zoomDelta) < 5.0 ? this->scale + zoomDelta : 5.0 : 0.3;
         Vector2 mousePos = GetMousePosition();
         /// TODO find a way to zoom into the mouse position ... too tired for this now
         this->camera.zoom = this->scale;
@@ -497,10 +465,10 @@ void LevelScreen::update(float delta)
             character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
             character->sprite->screenBounds = character->screenBounds;
         }
-        for ( Character &obj : this->objects )
+        for ( Character *obj : this->objects )
         {
-            obj.screenBounds = LevelScreen::WorldToScreen(this, obj.worldBounds);
-            obj.sprite->screenBounds = obj.screenBounds;
+            obj->screenBounds = LevelScreen::WorldToScreen(this, obj->worldBounds);
+            obj->sprite->screenBounds = obj->screenBounds;
         }
     }
 
@@ -512,7 +480,15 @@ void LevelScreen::update(float delta)
     /// TODO z-sort characters and objects !!!
 
     this->draw(delta);
-    this->infoScreen->draw(delta);
+}
+void LevelScreen::sortDrawableObjects()
+{
+    // sort by y-value
+    std::sort(this->drawableObjects.begin(), this->drawableObjects.end(),
+        [](Character *a, Character *b) {
+            return a->screenBounds.y < b->screenBounds.y;
+        }
+    );
 }
 
 void LevelScreen::draw(float delta)
@@ -520,40 +496,39 @@ void LevelScreen::draw(float delta)
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);
-            DrawRectangleLinesEx(this->dragonSprite->screenBounds, 1.0, RED);
-            DrawText("this is the LEVEL", 100,100,30,ORANGE);
-            DrawText("click on the dragon to exit", 100,300,30,ORANGE);
 
         //int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);
         /// start debug
         std::string distanceText;
+        static Color distanceMapColor[] = {RED, BLUE, PURPLE, YELLOW};
         for ( int y = 0; y < this->levelSize.y; ++y )
         {
             for ( int x = 0; x < this->levelSize.x; ++x )
             {
-                Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
-                distanceText = std::to_string(distanceMap[x][y]);
-                DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, RED);
+                if ( distanceMaps.count(selectedDebugDistanceMap))
+                {
+                    Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
+                    distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
+                    distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
+                    DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, distanceMapColor[this->selectedDebugDistanceMap]);
+                }
             }
         }
         
-        for ( Character &object : this->objects )
+        sortDrawableObjects();
+
+        for ( Character *object : this->drawableObjects )
         {
-            if ( object.sprite )
+            if ( object->sprite )
             {
-                object.sprite->draw(delta);
-            }
-        }
-        for ( Character *character : this->characters )
-        {
-            if ( character->sprite )
-            {
-                character->sprite->draw(delta);
+                object->sprite->draw(delta);
             }
         }
 
-        dragonSprite->draw(delta);
+        this->ui->draw(delta);
+
+        this->infoScreen->draw(delta);
     EndDrawing();
 
 }

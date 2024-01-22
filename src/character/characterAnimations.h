@@ -25,11 +25,11 @@ Animation charAnimationWalkS = { -1, {},
         { { 0.3, {80.0,0.0,16.0,16.0} },
         { 0.3, {96.0,0.0,16.0,16.0} }
         }};
-Animation charAnimationWalkW = { -1, {},
+Animation charAnimationWalkE = { -1, {},
         { { 0.3, {16.0,0.0,-16.0,16.0} },
         { 0.3, {32.0,0.0,-16.0,16.0} }
         }};
-Animation charAnimationWalkE = { -1, {}, 
+Animation charAnimationWalkW = { -1, {}, 
         { { 0.3, {16.0,0.0,16.0,16.0} },
         { 0.3, {32.0,0.0,16.0,16.0} }
         }};

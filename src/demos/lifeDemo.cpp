@@ -4,80 +4,8 @@
 #include "raylib.h"
 #include "types.h"
 #include "animation.h"
+#include "ui.h"
 
-class PlayerState
-{
-public:
-    PlayerState(int HP, int EP) : HP(HP), EP(EP) {}
-    int HP;
-    int EP;
-};
-
-class UI
-{
-public:
-    UI(Vector2 pos, float scale, PlayerState *playerState):
-        pos(pos),
-        scale(scale),
-        playerState(playerState)
-    {
-        this->texture = LoadTexture("images/ui.png");
-        this->lifeSprite = new AnimatedSprite(
-            // texture bounds
-            {0.0,0.0,16.0,16.0},
-            // screen bounds
-            {0.0,0.0,16.0f * scale, 16.0f * scale},
-            this->texture,
-            {{CharacterState::CHAR_IDLE,
-            (Animation){-1, {},
-            {   {0.2, {0.0,0.0,16.0,16.0}},
-                {0.2, {16.0,0.0,16.0,16.0}},
-                {0.2, {32.0,0.0,16.0,16.0}},
-                {0.2, {48.0,0.0,16.0,16.0}},
-                {0.2, {64.0,0.0,16.0,16.0}},
-                {0.2, {80.0,0.0,16.0,16.0}}
-            }}}});
-        this->fireSprite = new AnimatedSprite(
-            // texture bounds
-            {0.0,16.0,16.0,16.0},
-            // screen bounds
-            {100.0,0.0,16.0f * scale, 16.0f * scale},
-            this->texture,
-            {{CharacterState::CHAR_IDLE,
-            (Animation){-1, {},
-            {   {0.2, {0.0,0.0,16.0,16.0}},
-                {0.2, {16.0,0.0,16.0,16.0}},
-                {0.2, {32.0,0.0,16.0,16.0}},
-                {0.2, {48.0,0.0,16.0,16.0}},
-                {0.2, {64.0,0.0,16.0,16.0}},
-                {0.2, {80.0,0.0,16.0,16.0}}
-            }}}});
-    }
-
-    void draw(float delta)
-    {
-        this->lifeSprite->draw(delta);
-        DrawRectangleRec((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, {172, 50, 50, 255});
-        DrawRectangleLinesEx((Rectangle){40,16,static_cast<float>(this->playerState->HP), 20}, 2, {75, 22, 22, 255});
-        std::stringstream hpText;
-        hpText << this->playerState->HP;
-        DrawText(hpText.str().c_str(), 42, 2, 30, LIGHTGRAY);
-
-        this->fireSprite->draw(delta);
-        DrawRectangleRec((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, {255, 134, 0, 255});
-        DrawRectangleLinesEx((Rectangle){240,16,static_cast<float>(this->playerState->EP), 20}, 2, {186, 47, 0, 255});
-        std::stringstream epText;
-        epText << this->playerState->EP;
-        DrawText(epText.str().c_str(), 242, 2, 30, LIGHTGRAY);
-    }
-private:
-    Vector2 pos;
-    float scale;
-    Texture texture;
-    PlayerState *playerState;
-    AnimatedSprite *lifeSprite;
-    AnimatedSprite *fireSprite;
-};
 
 class LifeGrid
 {
@@ -197,7 +125,7 @@ void showLifeDemo()
     const int screenHeight = 32 * 20;
     const float scaleFactor = 2;
 
-    PlayerState playerState(20,30);
+    WorldObjectStatus playerState = {20,30};
 
     LifeGrid lifeGrid({24,20}, scaleFactor, new TileMap(LoadTexture("images/tileMap.png"), {16.0,16.0}, {4,4}), {3,0}, {3,2});
     lifeGrid.init();

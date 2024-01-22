@@ -44,18 +44,24 @@ void InfoScreen::setNumTiles(int numTiles)
 void LevelScreen::loadCharacters()
 {
 
-    this->charSpeedMax = 200.0;
-    this->charSpeed = {100.0f, 0.0f};
-    this->charAcc = 100.0;
+    this->charSpeedMax = 10.0;
+    this->charSpeed = {10.0f, 0.0f};
+    this->charAcc = 50.0;
 
-    Rectangle playerWorldBounds{100,100,64,64};
+    Rectangle playerWorldBounds{10,10,2,2};
     Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
+    playerScreenBounds.width = 32;
+    playerScreenBounds.width = 32;
     WorldObjectStatus initialPlayerStats = {10,10};
-    this->player = new Character("player", CharacterState::CHAR_IDLE, initialPlayerStats, playerWorldBounds, playerScreenBounds, new AnimatedSprite(
-        {0.0,0.0,32.0,32.0},
-        {100.0,100.0,64.0,64.0},
-        Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
-        {{CharacterState::CHAR_IDLE, idleDragon}}
+    this->player = new Character("player", CharacterState::CHAR_IDLE,
+        initialPlayerStats,
+        playerWorldBounds,
+        playerScreenBounds,
+        new AnimatedSprite(
+            {0.0,0.0,32.0,32.0},
+            playerScreenBounds,
+            Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
+            {{CharacterState::CHAR_IDLE, idleDragon}}
     ));
     this->drawableObjects.push_back(player);
 
@@ -134,7 +140,7 @@ void LevelScreen::loadObjects()
     objectWorldBounds.height = 2;
     WorldObjectStatus initialObjectStats = {10,10};
     Rectangle objectScreenBounds{0,0,1,1};
-    Rectangle objectTextureBounds{0,0,16,32};
+    Rectangle objectTextureBounds{0,0,32,32};
     this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
     const int MAX_OBJECTS = 20;
     std::map<CharacterState, Animation> objectAnimations = 
@@ -197,7 +203,7 @@ void LevelScreen::loadTiles()
     {
         for ( int x = 0; x < tilesX; ++x )
         {
-            Vector2 defaultTile = {(float)(x%4),(float)(y%4)};
+            Vector2 defaultTile = {(float)(x%1),0};//(float)(y%2)};
             /// source rectangle in source-px-coordinates
             this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
                 defaultTile.x * this->tiles.tileSize.x,
@@ -332,12 +338,18 @@ void LevelScreen::movePlayer(float delta)
     /// TODO intermediate "solution"
     if ( fabs(this->charSpeed.x) > 1.0f )
     {
-        this->player->sprite->screenBounds.x += this->charSpeed.x * delta;
+        this->player->worldBounds.x += this->charSpeed.x * delta;
     }
     if ( fabs(this->charSpeed.y) > 1.0f )
     {
-        this->player->sprite->screenBounds.y += this->charSpeed.y * delta;
+        this->player->worldBounds.y += this->charSpeed.y * delta;
     }
+    Vector2 screenPos = LevelScreen::WorldToScreen(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
+    this->player->screenBounds.x = screenPos.x;
+    this->player->screenBounds.y = screenPos.y;
+    this->player->sprite->screenBounds = this->player->screenBounds;
+
+    updateDistanceMap(DistanceMapType::PLAYER_DISTANCE, {this->player->worldBounds.x, this->player->worldBounds.y});
 }
 
 bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
@@ -356,7 +368,7 @@ bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
 
 void LevelScreen::moveNPCs(float delta)
 {
-    float charSpeed = 10.0;
+    float charSpeed = 2.0;
     for ( Character *npc : this->characters )
     {
         Vector2 deltaPos = { 0, 0};
@@ -497,7 +509,7 @@ void LevelScreen::draw(float delta)
     BeginDrawing();
         ClearBackground(GREEN);
 
-        //int numTiles = this->tiles.draw();
+        int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);
         /// start debug
         std::string distanceText;

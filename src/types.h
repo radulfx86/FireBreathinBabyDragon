@@ -86,7 +86,6 @@ public:
         std::cerr << "background of size: " << numScreenTilesX << " x " << numScreenTilesY << "\n";
         std::cerr << "background of size: " << screenSize.x << " x " << screenSize.y << "\n";
         std::cerr << "tileSize: " << background->tileSize.x << " x " << background->tileSize.y << "\n";
-        exit(3);
         /// initialize a tile map for the screen
         for ( int y = 0; y < numScreenTilesY; ++y )
         {

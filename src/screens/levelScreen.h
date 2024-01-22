@@ -27,7 +27,7 @@ private:
 class LevelScreen : public GameScreen, public GameState
 {
 public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false), scale(1), offset({0,0}), selectedDebugDistanceMap(static_cast<DistanceMapType>(0))
+    LevelScreen(Game *game) : GameScreen(game), isDone(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
     //, tileSize({16,16})
      {}
     virtual void initialize() override;
@@ -104,6 +104,18 @@ public:
         else
         {
             return {0,0,0,0};
+        }
+    }
+    static Vector2 WorldToScreen(LevelScreen *level, Vector2 worldCoords)
+    {
+        if ( level )
+        {
+            return {(level->offset.x + worldCoords.x) * level->scale * level->tiles.tileSize.x,
+                (level->offset.y + worldCoords.y) * level->scale * level->tiles.tileSize.y};
+        }
+        else
+        {
+            return {0,0};
         }
     }
 private:

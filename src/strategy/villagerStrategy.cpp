@@ -60,7 +60,7 @@ bool idleCharacter(Character *character, MappedDistanceMaps distanceMaps)
     int y = static_cast<int>(character->worldBounds.y);
     if ( distanceMaps.count(0) )
     {
-        getNextState(x, y, newState, distanceMaps[0]);//DistanceMapType::PLAYER_DISTANCE]);
+        getNextState(x, y, newState, distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
     }
     TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
      static_cast<int>(character->state), static_cast<int>(newState));
@@ -83,7 +83,7 @@ bool moveCharacter(Character *character, MappedDistanceMaps distanceMaps)
     int y = static_cast<int>(character->worldBounds.y);
     if ( distanceMaps.count(0) )
     {
-        getNextState(x, y, newState, distanceMaps[0]);//DistanceMapType::PLAYER_DISTANCE]);
+        getNextState(x, y, newState, distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
     }
     TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
      static_cast<int>(character->state), static_cast<int>(newState));

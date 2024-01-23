@@ -44,7 +44,7 @@ class LevelScreen : public GameScreen, public GameState
 public:
     LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
     //, tileSize({16,16})
-     {}
+     { playerX = 0; playerY = 0;}
     virtual void initialize() override;
 
     virtual void draw(float delta) override;
@@ -172,6 +172,7 @@ private:
     bool checkCollision(Character *source, Rectangle worldBounds);
     Character* getCollision(Character *source, Rectangle worldBounds);
     void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
+    void updatePlayerDistanceMap();
     void sortDrawableObjects();
     void checkWinCondition();
     Camera2D camera;
@@ -180,6 +181,7 @@ private:
     std::vector<Character*> characters;
     std::vector<Character*> objects;
     std::vector<Character*> drawableObjects;
+    int playerX, playerY;
     Character *player;
 
     UI *ui;

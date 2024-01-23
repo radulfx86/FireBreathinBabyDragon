@@ -5,6 +5,9 @@
 #include "debugStats.h"
 #include <sstream>
 #include <cmath>
+#include <execution>
+#include <queue>
+#include <cstring>
 
 void InfoScreen::draw(float delta)
 {
@@ -460,6 +463,8 @@ void LevelScreen::movePlayer(float delta)
     {
         this->player->worldBounds.y += this->charSpeed.y * delta;
     }
+    int newX = this->player->worldBounds.x;
+    int newY = this->player->worldBounds.y;
     Vector2 screenPos = LevelScreen::WorldToScreenPos(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
     this->player->screenBounds.x = screenPos.x;
     this->player->screenBounds.y = screenPos.y;
@@ -471,7 +476,82 @@ void LevelScreen::movePlayer(float delta)
     {
         hit->stats.HP = 0;
     }
-    updateDistanceMap(DistanceMapType::PLAYER_DISTANCE, {this->player->worldBounds.x, this->player->worldBounds.y});
+    if ( newX != playerY && newY != playerY )
+    {
+        playerX = newX;
+        playerY = newY;
+        updatePlayerDistanceMap();
+    }
+}
+
+void LevelScreen::updatePlayerDistanceMap()
+{
+    /// reset
+    std::for_each(std::execution::par_unseq,
+                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].begin(),
+                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].end(), 
+                    [](std::vector<int> &dist){
+//                        std::memset(&dist[0], -1, sizeof(int)*dist.size());
+                        std::for_each(std::execution::par_unseq,
+                                        dist.begin(),
+                                        dist.end(),
+                                        [](int &n) { n = -1; });
+     });
+    const int MAX_STEP = 1000;
+    const int DIST_MAX = 10;
+    bool done = false;
+    using Dist_t = struct {int dist; int x; int y;};
+    std::queue<Dist_t> queue;
+    queue.push((Dist_t){0, this->player->worldBounds.x, this->player->worldBounds.y});
+    Rectangle testCursor {0,0,1,1};
+    int cnt = 0;
+    for ( int step = 0; (!queue.empty()) && step < MAX_STEP; ++step )
+    {
+        Dist_t current = queue.front();
+        if ( current.dist > DIST_MAX )
+        {
+            break;
+        }
+        queue.pop();
+
+        for ( int dx = -1; dx < 2; ++dx )
+        {
+            for ( int dy = -1; dy < 2; ++dy )
+            {
+                int x = current.x + dx;
+                int y = current.y + dy;
+                if ( (x == 0 && y == 0) || x <= 0 || x >= this->levelSize.x || y <= 0 || y >= this->levelSize.y )
+                {
+                    continue;
+                }
+                /// THIS IS BAD !!!
+                bool collision = false;
+                testCursor.x = x;
+                testCursor.y = y;
+                for ( Character *obj : this->objects)
+                {
+                    if (CheckCollisionPointRec(Vector2{x+0.5f,y+0.5f}, obj->worldBounds) )
+                    {
+                        collision = true;
+                        break; 
+                    }
+                }
+                if ( not collision
+                    && (this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] == -1 ||
+                     current.dist < this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y])
+                    )
+                {
+                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] = current.dist;
+                    queue.push((Dist_t){current.dist+1, x, y});
+                }
+                else
+                {
+                    continue;
+                }
+            }
+        }
+        ++cnt;
+    }
 }
 
 bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)

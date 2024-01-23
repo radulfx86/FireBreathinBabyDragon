@@ -65,7 +65,6 @@ void LevelScreen::loadCharacters()
     ));
     this->drawableObjects.push_back(player);
 
-    InitAudioDevice();
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
     /// NPCs

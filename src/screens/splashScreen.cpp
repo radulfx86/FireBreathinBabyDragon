@@ -13,7 +13,6 @@ void SplashScreen::initialize()
 
     SetWindowSize(640, 480);
     SetTargetFPS(60);
-    InitAudioDevice();
     this->mainTheme = Datastore::getInstance().getSound("audio/Main_Theme_Lute.mp3");
 
 }

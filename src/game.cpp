@@ -12,6 +12,7 @@
 void Game::initialize()
 {
     TRACE;
+    InitAudioDevice();
     SplashScreen *splashScreen = new SplashScreen(this);
     LevelScreen *levelScreen = new LevelScreen(this);
     ExitScreen *exitScreen = new ExitScreen(3.0, this);

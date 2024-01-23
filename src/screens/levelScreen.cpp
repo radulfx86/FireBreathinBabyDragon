@@ -41,65 +41,142 @@ void InfoScreen::setNumTiles(int numTiles)
     }
 }
 
-void LevelScreen::loadCharacters()
+void LevelScreen::loadSounds()
 {
-
-    this->charSpeedMax = 10.0;
-    this->charSpeed = {10.0f, 0.0f};
-    this->charAcc = 50.0;
-
-    Rectangle playerWorldBounds{10,10,2,2};
-    Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
-    playerScreenBounds.width = 32;
-    playerScreenBounds.width = 32;
-    WorldObjectStatus initialPlayerStats = {10,10};
-    this->player = new Character("player", CharacterState::CHAR_IDLE,
-        initialPlayerStats,
-        playerWorldBounds,
-        playerScreenBounds,
-        new AnimatedSprite(
-            {0.0,0.0,32.0,32.0},
-            playerScreenBounds,
-            Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
-            {{CharacterState::CHAR_IDLE, idleDragon}}
-    ));
-    this->drawableObjects.push_back(player);
-
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
-    /// NPCs
-    TraceLog(LOG_INFO, "load NPCs");
-    Rectangle npcWorldBounds;
-    npcWorldBounds.width = 1;
-    npcWorldBounds.height = 1;
-    WorldObjectStatus initialNPCStats = {10,10};
-    Rectangle npcScreenBounds{0,0,16,16};
-    Rectangle npcTextureBounds{0,0,16,16};
+}
+
+void LevelScreen::loadLevel()
+{
+    /// hard-coded level-name
+    Image levelImageData = LoadImage("images/testLevel.png");
+    
+    this->levelSize = {static_cast<float>(levelImageData.width),
+                        static_cast<float>(levelImageData.height)};
+
+    this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
     this->npcTexture = Datastore::getInstance().getTexture("images/villagers.png");
-    const int MAX_NPC = 100;
-    std::map<CharacterState, Animation> npcAnimations = {
-        {CharacterState::CHAR_IDLE, charAnimationIdle},
-        {CharacterState::CHAR_DIE, charAnimationDie},
-        {CharacterState::CHAR_WALK_N, charAnimationWalkN},
-        {CharacterState::CHAR_WALK_E, charAnimationWalkE},
-        {CharacterState::CHAR_WALK_S, charAnimationWalkS},
-        {CharacterState::CHAR_WALK_W, charAnimationWalkW}
-        };
-    CharacterState stateMap[] = {CharacterState::CHAR_IDLE,
-        CharacterState::CHAR_DIE,
-        CharacterState::CHAR_WALK_N,
-        CharacterState::CHAR_WALK_E,
-        CharacterState::CHAR_WALK_S,
-        CharacterState::CHAR_WALK_W};
-    for ( int i = 0; i < MAX_NPC; ++i )
+     
+    const unsigned int tilesX = this->levelSize.x;
+    const unsigned int tilesY = this->levelSize.y;
+    this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
+    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].resize(tilesX,std::vector<int>(tilesY));
+    float tileScaleFactor = 1.0;
+    
+    for ( unsigned int y = 0; y < levelImageData.height; ++y )
     {
-        npcWorldBounds.x = GetRandomValue(0, this->levelSize.x);
-        npcWorldBounds.y = GetRandomValue(0, this->levelSize.y);
+        for ( unsigned int x = 0; x < levelImageData.width; ++x )
+        {
+            Color levelColor = GetImageColor(levelImageData, x, y);
+            if ( levelColor.r == 255 && levelColor.g == 0 && levelColor.b == 0 )
+            {
+                /// add Player
+                addCharacter(CharacterType::PLAYER, x, y);
+            }
+            if ( levelColor.r == 0 && levelColor.g == 0 && levelColor.b == 255 )
+            {
+                /// add Mage
+                addCharacter(CharacterType::MAGE, x, y);
+            }
+            if ( levelColor.r == 255 && levelColor.g == 255 && levelColor.b == 0 )
+            {
+                /// add Villager
+                addCharacter(CharacterType::VILLAGER, x, y);
+            }
+            if ( levelColor.r == 0 && levelColor.g == 149 && levelColor.b == 255 )
+            {
+                /// add Guard
+                addCharacter(CharacterType::GUARD, x, y);
+            }
+            if ( levelColor.r == 75 && levelColor.g == 105 && levelColor.b == 47 )
+            {
+                /// add Tree
+                addObject(ObjectType::TREE, x, y);
+            }
+            if ( levelColor.r == 203 && levelColor.g == 219 && levelColor.b == 252 )
+            {
+                /// add House
+                addObject(ObjectType::HOUSE, x, y);
+            }
+            /// TILES:
+            Vector2 defaultTile = {(float)(x%1),0};//(float)(y%2)};
+            /// source rectangle in source-px-coordinates
+            this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
+                defaultTile.x * this->tiles.tileSize.x,
+                defaultTile.y * this->tiles.tileSize.y,
+                this->tiles.tileSize.x,
+                this->tiles.tileSize.y},
+            /// target rectangle in target-px-coordinates (scaled)
+            {
+                x * this->tiles.tileSize.x * tileScaleFactor,
+                y * this->tiles.tileSize.y * tileScaleFactor,
+                this->tiles.tileSize.x * tileScaleFactor,
+                this->tiles.tileSize.y * tileScaleFactor}});
+        }
+    }
+    UnloadImage(levelImageData);
+
+}
+
+void LevelScreen::addCharacter(CharacterType charType, int x, int y)
+{
+    std::cerr << __func__ << "(" << (int)charType << ", " << x << ", " << y << ")\n";
+    if ( charType == CharacterType::PLAYER )
+    {
+        this->charSpeedMax = 10.0;
+        this->charSpeed = {10.0f, 0.0f};
+        this->charAcc = 50.0;
+
+        Rectangle playerWorldBounds{x,y,2,2};
+        Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
+        playerScreenBounds.width = 32;
+        playerScreenBounds.height = 32;
+        WorldObjectStatus initialPlayerStats = {10,10};
+        this->player = new Character("player", CharacterState::CHAR_IDLE,
+            initialPlayerStats,
+            playerWorldBounds,
+            playerScreenBounds,
+            new AnimatedSprite(
+                {0.0,0.0,32.0,32.0},
+                playerScreenBounds,
+                Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
+                {{CharacterState::CHAR_IDLE, idleDragon}}
+        ));
+        this->drawableObjects.push_back(this->player);
+        std::cerr << " add player at " << player->worldBounds.x << " " << player->worldBounds.y << "\n";
+    }
+    else
+    {
+        /// NPCs
+        /// class-specific parameters
+        TraceLog(LOG_INFO, "load NPCs");
+        Rectangle npcWorldBounds;
+        npcWorldBounds.width = 1;
+        npcWorldBounds.height = 1;
+        WorldObjectStatus initialNPCStats = {10,10};
+        Rectangle npcScreenBounds{0,0,16,16};
+        Rectangle npcTextureBounds{0,0,16,16};
+        std::map<CharacterState, Animation> npcAnimations = {
+            {CharacterState::CHAR_IDLE, charAnimationIdle},
+            {CharacterState::CHAR_DIE, charAnimationDie},
+            {CharacterState::CHAR_WALK_N, charAnimationWalkN},
+            {CharacterState::CHAR_WALK_E, charAnimationWalkE},
+            {CharacterState::CHAR_WALK_S, charAnimationWalkS},
+            {CharacterState::CHAR_WALK_W, charAnimationWalkW}
+            };
+        CharacterState stateMap[] = {CharacterState::CHAR_IDLE,
+            CharacterState::CHAR_DIE,
+            CharacterState::CHAR_WALK_N,
+            CharacterState::CHAR_WALK_E,
+            CharacterState::CHAR_WALK_S,
+            CharacterState::CHAR_WALK_W};
+        npcWorldBounds.x = x;
+        npcWorldBounds.y = y;
         npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
         npcTextureBounds.y = GetRandomValue(1,3) * 16;
-        CharacterState npcState = stateMap[static_cast<int>(GetRandomValue(0,5))];
-        npcState = CharacterState::CHAR_IDLE;
-        this->characters.push_back(
+        CharacterState npcState = CharacterState::CHAR_IDLE;
+        Character *npc = 
             new Character("NPC", npcState,
                 initialNPCStats,
                 npcWorldBounds,
@@ -109,38 +186,93 @@ void LevelScreen::loadCharacters()
                     npcScreenBounds,
                     npcTexture,
                     npcAnimations,{(AnimationState){npcState,0,0,0}}
-                    )));
-            TraceLog(LOG_DEBUG,"generate character at world: {pos {%.0f,%.0f}, size {%.0f,%.0f}} screen {pos {%.0f,%.0f}, size {%.0f,%.0f}} statue: %d",
-                npcWorldBounds.x, npcWorldBounds.y, npcWorldBounds.width, npcWorldBounds.height,
-                npcScreenBounds.x, npcScreenBounds.y, npcScreenBounds.width, npcScreenBounds.height,
-                static_cast<int>(npcState));
-    }
-    for (Character *npc : this->characters )
-    {
-        npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::moveCharacter;
-        npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::moveCharacter;
+                    ));
+        TraceLog(LOG_DEBUG,"generate character at world: {pos {%.0f,%.0f}, size {%.0f,%.0f}} screen {pos {%.0f,%.0f}, size {%.0f,%.0f}} statue: %d",
+            npcWorldBounds.x, npcWorldBounds.y, npcWorldBounds.width, npcWorldBounds.height,
+            npcScreenBounds.x, npcScreenBounds.y, npcScreenBounds.width, npcScreenBounds.height,
+            static_cast<int>(npcState));
+    
+        /// common parameters
+        switch ( charType )
+        {
+            case VILLAGER:
+            {
+                npc->name = "meh";
+                npc->sprite->textureBounds.y = 0 * 16;
+                npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleVillager;
+                npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveVillager;
+                npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveVillager;
+                npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveVillager;
+                npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveVillager;
+                npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::attackVillager;
+                npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::attackVillager;
+                npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::attackVillager;
+                npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::attackVillager;
+                break;
+            }
+            case GUARD:
+            {
+                npc->sprite->textureBounds.y = 2 * 16;
+                npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleGuard;
+                npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveGuard;
+                npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveGuard;
+                npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveGuard;
+                npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveGuard;
+                npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::attackGuard;
+                npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::attackGuard;
+                npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::attackGuard;
+                npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::attackGuard;
+                break;
+            }
+            case MAGE:
+            {
+                npc->sprite->textureBounds.y = 3 * 16;
+                npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleMage;
+                npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveMage;
+                npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveMage;
+                npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveMage;
+                npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveMage;
+                npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::attackMage;
+                npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::attackMage;
+                npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::attackMage;
+                npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::attackMage;
+                break;
+            }
+            case HERO:
+            {
+                /// hero for now cosplays as female villager
+                npc->sprite->textureBounds.y = 1 * 16;
+                npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleHero;
+                npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveHero;
+                npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveHero;
+                npc->strategy[CharacterState::CHAR_WALK_S] = strategy::moveHero;
+                npc->strategy[CharacterState::CHAR_WALK_N] = strategy::moveHero;
+                npc->strategy[CharacterState::CHAR_ATTACK_N] = strategy::attackHero;
+                npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::attackHero;
+                npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::attackHero;
+                npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::attackHero;
+                break;
+            }
+            case PLAYER:
+                // fall through
+            default:
+                break;
+        }
+
         this->drawableObjects.push_back(npc);
+        this->characters.push_back(npc);
     }
 }
 
-void LevelScreen::loadObjects()
+void LevelScreen::addObject(ObjectType objType, int x, int y)
 {
-    TRACE;
-    TraceLog(LOG_INFO, "load objects");
+    std::cerr << __func__ << "(" << (int)objType << ", " << x << ", " << y << ")\n";
     Rectangle objectWorldBounds;
     objectWorldBounds.width = 1;
     objectWorldBounds.height = 2;
     WorldObjectStatus initialObjectStats = {10,10};
-    Rectangle objectScreenBounds{0,0,1,1};
+    Rectangle objectScreenBounds{0,0,1,2};
     Rectangle objectTextureBounds{0,0,32,32};
-    this->objectTexture = Datastore::getInstance().getTexture("images/assets.png");
     const int MAX_OBJECTS = 20;
     this->winThreshold = MAX_OBJECTS/10;
     std::map<CharacterState, Animation> objectAnimations = 
@@ -151,26 +283,44 @@ void LevelScreen::loadObjects()
                 {0.2, {32.0,0.0,16.0,32.0}},
                 {0.2, {48.0,0.0,16.0,32.0}}
             }}}};
-    for ( int i = 0; i < MAX_OBJECTS; ++i )
+    objectWorldBounds.x = x;
+    objectWorldBounds.y = y;
+    objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
+    switch ( objType )
     {
-        objectWorldBounds.x = GetRandomValue(0, this->levelSize.x);
-        objectWorldBounds.y = GetRandomValue(0, this->levelSize.y);
-        objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
-        objectTextureBounds.y = GetRandomValue(0,5) * 32;
-        this->objects.push_back(
-            new Character("OBJECT", CharacterState::CHAR_IDLE, initialObjectStats, objectWorldBounds,
+        case ObjectType::HOUSE:
+            objectTextureBounds.y = 0 * 32;
+            break;
+        case ObjectType::TREE:
+            objectTextureBounds.y = GetRandomValue(2,4) * 32;
+            break;
+        case ObjectType::TOWER:
+            objectTextureBounds.y = 1 * 32;
+            break;
+        case ObjectType::WALL:
+            /// TODO tower is a wall now ...
+            objectTextureBounds.y = 1 * 32;
+            break;
+        default:
+            break;
+    }
+    Character *obj = 
+            new Character("OBJECT", CharacterState::CHAR_IDLE,
+                initialObjectStats,
+                objectWorldBounds,
                 objectScreenBounds,
                 new AnimatedSprite(
                     objectTextureBounds,
                     objectScreenBounds,
                     objectTexture,
-                    objectAnimations)));
-    }
-    TraceLog(LOG_INFO, "%d objects loaded", this->objects.size());
-    for (Character *obj : this->objects )
-    {
-        this->drawableObjects.push_back(obj);
-    }
+                    objectAnimations));
+    /// TODO random start time for animation
+    obj->sprite->animationState.activeFrame = GetRandomValue(0,obj->sprite->animations[obj->sprite->animationState.activeAnimation].frames.size());
+    obj->sprite->animationState.frameDelta = 
+        obj->sprite->animations[obj->sprite->animationState.activeAnimation].frames[obj->sprite->animationState.activeFrame].first
+         * static_cast<float>(GetRandomValue(0,100))/100.0f;
+    this->objects.push_back(obj);
+    this->drawableObjects.push_back(obj);
 }
 
 void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
@@ -191,36 +341,6 @@ void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2
     }
 }
 
-void LevelScreen::loadTiles()
-{
-    this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
-    const unsigned int tilesX = 40;
-    const unsigned int tilesY = 30;
-    this->levelSize = {tilesX, tilesY};
-    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].resize(tilesX,std::vector<int>(tilesY));
-    float tileScaleFactor = 1.0;
-    for ( int y = 0; y < tilesY; ++y )
-    {
-        for ( int x = 0; x < tilesX; ++x )
-        {
-            Vector2 defaultTile = {(float)(x%1),0};//(float)(y%2)};
-            /// source rectangle in source-px-coordinates
-            this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
-                defaultTile.x * this->tiles.tileSize.x,
-                defaultTile.y * this->tiles.tileSize.y,
-                this->tiles.tileSize.x,
-                this->tiles.tileSize.y},
-            /// target rectangle in target-px-coordinates (scaled)
-            {
-                x * this->tiles.tileSize.x * tileScaleFactor,
-                y * this->tiles.tileSize.y * tileScaleFactor,
-                this->tiles.tileSize.x * tileScaleFactor,
-                this->tiles.tileSize.y * tileScaleFactor}});
-        }
-    }
-    this->tiles.updateCamera(this->camera);
-}
-
 void LevelScreen::loadUI()
 {
     this->ui = new UI({0,0}, 2.0, &this->player->stats);
@@ -237,12 +357,8 @@ void LevelScreen::initialize()
     //SetTargetFPS(-1);
 
     this->infoScreen = new InfoScreen({400,10});
-    
-    loadTiles();
 
-    loadObjects();
-
-    loadCharacters();
+    loadLevel();
 
     loadUI();
 
@@ -344,7 +460,7 @@ void LevelScreen::movePlayer(float delta)
     {
         this->player->worldBounds.y += this->charSpeed.y * delta;
     }
-    Vector2 screenPos = LevelScreen::WorldToScreen(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
+    Vector2 screenPos = LevelScreen::WorldToScreenPos(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
     this->player->screenBounds.x = screenPos.x;
     this->player->screenBounds.y = screenPos.y;
     this->player->sprite->screenBounds = this->player->screenBounds;
@@ -555,7 +671,7 @@ void LevelScreen::draw(float delta)
     BeginDrawing();
         ClearBackground(GREEN);
 
-        int numTiles = this->tiles.draw();
+        //int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);
         /// start debug
         std::string distanceText;

@@ -3,6 +3,21 @@
 #include "game.h"
 #include "ui.h"
 
+using ObjectType = enum {
+    HOUSE = 0,
+    TREE = 1,
+    TOWER = 2,
+    WALL = 3
+};
+
+using CharacterType = enum {
+    PLAYER = 0,
+    VILLAGER = 1,
+    GUARD = 2,
+    MAGE = 3,
+    HERO = 4
+};
+
 /// info screen
 class InfoScreen
 {
@@ -104,6 +119,11 @@ public:
     {
         if ( level )
         {
+#if 0
+            std::cerr << __func__ << "(" << worldCoords.x << " " << worldCoords.y << " " << worldCoords.width << " " << worldCoords.height << ")"
+                << " tileSize: " << level->tiles.tileSize.x << " " << level->tiles.tileSize.y
+                << " scale: " << level->scale << "\n";
+#endif
             return {(level->offset.x + worldCoords.x) * level->scale * level->tiles.tileSize.x,
                 (level->offset.y + worldCoords.y) * level->scale * level->tiles.tileSize.y,
                 (worldCoords.width * level->scale) * level->tiles.tileSize.x,
@@ -114,7 +134,7 @@ public:
             return {0,0,0,0};
         }
     }
-    static Vector2 WorldToScreen(LevelScreen *level, Vector2 worldCoords)
+    static Vector2 WorldToScreenPos(LevelScreen *level, Vector2 worldCoords)
     {
         if ( level )
         {
@@ -141,9 +161,10 @@ private:
     //Vector2 tileSize;
     TileMap tiles;
     InfoScreen *infoScreen;
-    void loadCharacters();
-    void loadObjects();
-    void loadTiles();
+    void loadLevel();
+    void addCharacter(CharacterType charType, int x, int y);
+    void addObject(ObjectType objType, int x, int y);
+    void loadSounds();
     void loadUI();
     void movePlayer(float delta);
     void moveNPCs(float delta);

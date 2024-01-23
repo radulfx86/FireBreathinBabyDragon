@@ -49,7 +49,7 @@ bool getNextState(int &x, int &y, CharacterState &dir, DistanceMap distanceMap)
     return true;
 }
 
-bool idleCharacter(Character *character, MappedDistanceMaps distanceMaps)
+bool idleVillager(Character *character, MappedDistanceMaps distanceMaps)
 {
     if ( nullptr == character )
     {
@@ -72,7 +72,7 @@ bool idleCharacter(Character *character, MappedDistanceMaps distanceMaps)
     return true;
 }
 
-bool moveCharacter(Character *character, MappedDistanceMaps distanceMaps)
+bool moveVillager(Character *character, MappedDistanceMaps distanceMaps)
 {
     if ( nullptr == character )
     {
@@ -90,6 +90,56 @@ bool moveCharacter(Character *character, MappedDistanceMaps distanceMaps)
     character->state = newState;
     character->sprite->animationState.activeAnimation = newState;
     return true;
+}
+
+bool attackVillager(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return moveVillager(character, distanceMaps);
+}
+
+bool idleGuard(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return idleVillager(character, distanceMaps);
+}
+
+bool moveGuard(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return moveVillager(character, distanceMaps);
+}
+
+bool attackGuard(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return attackVillager(character, distanceMaps);
+}
+
+bool idleMage(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return idleVillager(character, distanceMaps);
+}
+
+bool moveMage(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return moveVillager(character, distanceMaps);
+}
+
+bool attackMage(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return attackVillager(character, distanceMaps);
+}
+
+bool idleHero(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return idleVillager(character, distanceMaps);
+}
+
+bool moveHero(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return moveVillager(character, distanceMaps);
+}
+
+bool attackHero(Character *character, MappedDistanceMaps distanceMaps)
+{
+    return attackVillager(character, distanceMaps);
 }
 
 } // namespace strategy

@@ -2,6 +2,27 @@
 #define LEVEL_SCREEN_H
 #include "game.h"
 #include "ui.h"
+#include <unordered_map>
+#define MAX_LEVEL_SIZE_X 1000u
+#define MAX_LEVEL_SIZE_Y 1000u
+
+using GridPos = struct {int x; int y;};
+bool operator<(const GridPos &a, const GridPos &b)
+{
+    return (a.x + MAX_LEVEL_SIZE_X * a.y) < (b.x + MAX_LEVEL_SIZE_X * b.y);
+}
+bool operator==(const GridPos &a, const GridPos &b)
+{
+    return (a.x + MAX_LEVEL_SIZE_X * a.y) == (b.x + MAX_LEVEL_SIZE_X * b.y);
+}
+bool operator!=(const GridPos &a, const GridPos &b)
+{
+    return !(a==b);
+}
+GridPos operator+(const GridPos &a, const GridPos &b)
+{
+    return (GridPos){a.x+b.x, a.y+b.y};
+}
 
 using ObjectType = enum {
     HOUSE = 0,
@@ -42,9 +63,9 @@ private:
 class LevelScreen : public GameScreen, public GameState
 {
 public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
+    LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE), lastPlayerGridPos({0,0})
     //, tileSize({16,16})
-     { playerX = 0; playerY = 0;}
+     {}
     virtual void initialize() override;
 
     virtual void draw(float delta) override;
@@ -179,9 +200,11 @@ private:
     Vector2 levelSize;
 
     std::vector<Character*> characters;
-    std::vector<Character*> objects;
+    /// TBD: is there no way to actually use the tileMap for this?
+    std::map<GridPos,Character*> objects;
     std::vector<Character*> drawableObjects;
-    int playerX, playerY;
+    /// this is ugly
+    GridPos lastPlayerGridPos;
     Character *player;
 
     UI *ui;

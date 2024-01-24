@@ -322,7 +322,7 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
     obj->sprite->animationState.frameDelta = 
         obj->sprite->animations[obj->sprite->animationState.activeAnimation].frames[obj->sprite->animationState.activeFrame].first
          * static_cast<float>(GetRandomValue(0,100))/100.0f;
-    this->objects.push_back(obj);
+    this->objects[(GridPos){x,y}] = obj;
     this->drawableObjects.push_back(obj);
 }
 
@@ -463,8 +463,9 @@ void LevelScreen::movePlayer(float delta)
     {
         this->player->worldBounds.y += this->charSpeed.y * delta;
     }
-    int newX = this->player->worldBounds.x;
-    int newY = this->player->worldBounds.y;
+    GridPos newPlayerGridPos = {
+        this->player->worldBounds.x,
+        this->player->worldBounds.y };
     Vector2 screenPos = LevelScreen::WorldToScreenPos(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
     this->player->screenBounds.x = screenPos.x;
     this->player->screenBounds.y = screenPos.y;
@@ -476,10 +477,9 @@ void LevelScreen::movePlayer(float delta)
     {
         hit->stats.HP = 0;
     }
-    if ( newX != playerY && newY != playerY )
+    if ( newPlayerGridPos != this->lastPlayerGridPos )
     {
-        playerX = newX;
-        playerY = newY;
+        lastPlayerGridPos = newPlayerGridPos;
         updatePlayerDistanceMap();
     }
 }
@@ -498,12 +498,12 @@ void LevelScreen::updatePlayerDistanceMap()
                                         [](int &n) { n = -1; });
      });
     const int MAX_STEP = 1000;
-    const int DIST_MAX = 10;
+    const int DIST_MAX = 20;
     bool done = false;
-    using Dist_t = struct {int dist; int x; int y;};
+    using Dist_t = struct {int dist; GridPos pos;};
+    const GridPos directions[] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
     std::queue<Dist_t> queue;
-    queue.push((Dist_t){0, this->player->worldBounds.x, this->player->worldBounds.y});
-    Rectangle testCursor {0,0,1,1};
+    queue.push((Dist_t){0, {this->player->worldBounds.x+1, this->player->worldBounds.y+1}});
     int cnt = 0;
     for ( int step = 0; (!queue.empty()) && step < MAX_STEP; ++step )
     {
@@ -514,40 +514,31 @@ void LevelScreen::updatePlayerDistanceMap()
         }
         queue.pop();
 
-        for ( int dx = -1; dx < 2; ++dx )
+        for ( int d = 0; d < 4; ++d )
         {
-            for ( int dy = -1; dy < 2; ++dy )
+            GridPos pos = current.pos + directions[d];
+            if ( (pos.x == 0 && pos.y == 0)
+                 || pos.x <= 0 || pos.x >= this->levelSize.x
+                 || pos.y <= 0 || pos.y >= this->levelSize.y )
             {
-                int x = current.x + dx;
-                int y = current.y + dy;
-                if ( (x == 0 && y == 0) || x <= 0 || x >= this->levelSize.x || y <= 0 || y >= this->levelSize.y )
-                {
-                    continue;
-                }
-                /// THIS IS BAD !!!
-                bool collision = false;
-                testCursor.x = x;
-                testCursor.y = y;
-                for ( Character *obj : this->objects)
-                {
-                    if (CheckCollisionPointRec(Vector2{x+0.5f,y+0.5f}, obj->worldBounds) )
-                    {
-                        collision = true;
-                        break; 
-                    }
-                }
-                if ( not collision
-                    && (this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] == -1 ||
-                     current.dist < this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y])
-                    )
-                {
-                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] = current.dist;
-                    queue.push((Dist_t){current.dist+1, x, y});
-                }
-                else
-                {
-                    continue;
-                }
+                continue;
+            }
+            /// THIS IS BAD !!!
+            bool collision = false;
+            if ( this->objects.count(pos) > 0 || this->objects.count({pos.x,pos.y-1}) > 0)
+            {
+                continue;
+            }
+            if ( (this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y] == -1 ||
+                    current.dist < this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y])
+                )
+            {
+                this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y] = current.dist;
+                queue.push((Dist_t){current.dist+1, pos.x, pos.y});
+            }
+            else
+            {
+                continue;
             }
         }
         ++cnt;
@@ -640,8 +631,9 @@ void LevelScreen::checkWinCondition()
     if ( player->stats.HP > 0 )
     {
         int sumRemaining = 0;
-        for ( Character *obj : this->objects )
+        for ( auto tmp : this->objects )
         {
+            Character *obj = tmp.second;
             if ( obj->stats.HP > 0 )
             {
                 ++sumRemaining;
@@ -717,8 +709,9 @@ void LevelScreen::update(float delta)
             character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
             character->sprite->screenBounds = character->screenBounds;
         }
-        for ( Character *obj : this->objects )
+        for ( auto tmp : this->objects )
         {
+            Character *obj = tmp.second;
             obj->screenBounds = LevelScreen::WorldToScreen(this, obj->worldBounds);
             obj->sprite->screenBounds = obj->screenBounds;
         }

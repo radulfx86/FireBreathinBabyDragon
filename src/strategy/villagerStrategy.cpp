@@ -49,7 +49,7 @@ bool getNextState(int &x, int &y, CharacterState &dir, DistanceMap distanceMap)
     return true;
 }
 
-bool idleVillager(Character *character, MappedDistanceMaps distanceMaps)
+bool idleVillager(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
     if ( nullptr == character )
     {
@@ -72,7 +72,7 @@ bool idleVillager(Character *character, MappedDistanceMaps distanceMaps)
     return true;
 }
 
-bool moveVillager(Character *character, MappedDistanceMaps distanceMaps)
+bool moveVillager(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
     if ( nullptr == character )
     {
@@ -92,54 +92,54 @@ bool moveVillager(Character *character, MappedDistanceMaps distanceMaps)
     return true;
 }
 
-bool attackVillager(Character *character, MappedDistanceMaps distanceMaps)
+bool attackVillager(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return moveVillager(character, distanceMaps);
+    return moveVillager(character, delta, distanceMaps);
 }
 
-bool idleGuard(Character *character, MappedDistanceMaps distanceMaps)
+bool idleGuard(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return idleVillager(character, distanceMaps);
+    return idleVillager(character, delta, distanceMaps);
 }
 
-bool moveGuard(Character *character, MappedDistanceMaps distanceMaps)
+bool moveGuard(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return moveVillager(character, distanceMaps);
+    return moveVillager(character, delta, distanceMaps);
 }
 
-bool attackGuard(Character *character, MappedDistanceMaps distanceMaps)
+bool attackGuard(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return attackVillager(character, distanceMaps);
+    return attackVillager(character, delta, distanceMaps);
 }
 
-bool idleMage(Character *character, MappedDistanceMaps distanceMaps)
+bool idleMage(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return idleVillager(character, distanceMaps);
+    return idleVillager(character, delta, distanceMaps);
 }
 
-bool moveMage(Character *character, MappedDistanceMaps distanceMaps)
+bool moveMage(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return moveVillager(character, distanceMaps);
+    return moveVillager(character, delta, distanceMaps);
 }
 
-bool attackMage(Character *character, MappedDistanceMaps distanceMaps)
+bool attackMage(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return attackVillager(character, distanceMaps);
+    return attackVillager(character, delta, distanceMaps);
 }
 
-bool idleHero(Character *character, MappedDistanceMaps distanceMaps)
+bool idleHero(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return idleVillager(character, distanceMaps);
+    return idleVillager(character, delta, distanceMaps);
 }
 
-bool moveHero(Character *character, MappedDistanceMaps distanceMaps)
+bool moveHero(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return moveVillager(character, distanceMaps);
+    return moveVillager(character, delta, distanceMaps);
 }
 
-bool attackHero(Character *character, MappedDistanceMaps distanceMaps)
+bool attackHero(Character *character, float delta, MappedDistanceMaps distanceMaps)
 {
-    return attackVillager(character, distanceMaps);
+    return attackVillager(character, delta, distanceMaps);
 }
 
 } // namespace strategy

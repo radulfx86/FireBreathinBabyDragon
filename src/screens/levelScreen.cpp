@@ -333,7 +333,8 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
             objectTextureBounds.y = 0 * 32;
             break;
         case ObjectType::TREE:
-            objectTextureBounds.y = GetRandomValue(2,4) * 32;
+            objectTextureBounds.y = GetRandomValue(3,4) * 32;
+            objectTextureBounds.y = 3 * 32;
             break;
         case ObjectType::TOWER:
             objectTextureBounds.y = 1 * 32;
@@ -660,19 +661,49 @@ void LevelScreen::updateNPCs(float delta)
     {
         if ( npc->strategy.count(npc->state) > 0 )
         {
-            npc->strategy[npc->state](npc, this->distanceMaps);
+            npc->strategy[npc->state](npc, delta, this->distanceMaps);
         }
     }
 }
 
 void LevelScreen::updateObjects(float delta)
 {
+    std::vector<GridPos> deleteList;
     for ( auto tmp : this->objects )
     {
         Character *obj = tmp.second;
         if ( obj->strategy.count(obj->state) > 0 )
         {
-            obj->strategy[obj->state](obj, this->distanceMaps);
+            bool stateChange = obj->strategy[obj->state](obj, delta, this->distanceMaps);
+            if ( stateChange )
+            {
+                if ( obj->stats.HP <= 0 )
+                {
+                    deleteList.push_back(tmp.first);
+                }
+                this->updateDistanceMap(DistanceMapType::FIRE_DISTANCE,
+                    tmp.first, false, false, 99);
+                std::cerr << "UPDATING FIRE distance for OBJECT at " << tmp.first.x << " " << tmp.first.y << "\n";
+            }
+        }
+    }
+    /// TODO find a better way instead of this very clumsy attempt at removing stuff ...
+    if ( deleteList.size() > 0 )
+    {
+        for ( std::vector<Character*>::iterator it = this->drawableObjects.begin(); it != this->drawableObjects.end(); )
+        {
+            if ( (*it)->stats.HP <= 0 )
+            {
+                it = this->drawableObjects.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        for ( GridPos key : deleteList)
+        {
+            this->objects.erase(key);
         }
     }
 }
@@ -722,7 +753,7 @@ void LevelScreen::update(float delta)
     if ( IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) )
     {
         Vector2 clickPos = LevelScreen::ScreenToWorld(this, GetMousePosition());
-        GridPos clickGrid = {clickPos.x + 1, clickPos.y + 1};
+        GridPos clickGrid = {clickPos.x, clickPos.y};
         if ( (this->objects.count(clickGrid) > 0 )
             && (this->objects[clickGrid]->state == CharacterState::CHAR_IDLE ) )
         {

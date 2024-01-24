@@ -34,9 +34,10 @@ using ActionFunction = bool (*)(Character *);
  * @brief type for function to be called while a character is in a specific state
  * @note TODO might replace the second parameter with a pointer to Level
  * @param character pointer to character
+ * @param delta	time since last update [s]
  * @param distanceMap   distances for every coordinate to something ...
  */
-using StateFunction = bool (*)(Character *, MappedDistanceMaps); 
+using StateFunction = bool (*)(Character *, float, MappedDistanceMaps); 
 /// forward declaration for AnimationTrigger
 class Animation;
 /**

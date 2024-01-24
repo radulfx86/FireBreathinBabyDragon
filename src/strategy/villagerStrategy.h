@@ -1,8 +1,7 @@
 #ifndef VILLAGER_STRATEGY_H
 #define VILLAGER_STRATEGY_H
 #include "character.h"
-#include <vector>
-#include <map>
+
 namespace strategy
 {
 bool getNextState(int &x, int &y, CharacterState &dir, DistanceMap distanceMap);

@@ -190,10 +190,12 @@ private:
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
+    /// TODO merge with updateNPCs
+    void updateObjects(float delta);
     bool checkCollision(Character *source, Rectangle worldBounds);
     Character* getCollision(Character *source, Rectangle worldBounds);
     void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
-    void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, int distMax);
+    void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax);
     void sortDrawableObjects();
     void checkWinCondition();
     Camera2D camera;

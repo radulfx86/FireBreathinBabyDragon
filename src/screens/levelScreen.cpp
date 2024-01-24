@@ -2,6 +2,7 @@
 #include "datastore.h"
 #include "characterAnimations.h"
 #include "villagerStrategy.h"
+#include "objectStrategy.h"
 #include "debugStats.h"
 #include <sstream>
 #include <cmath>
@@ -142,7 +143,7 @@ void LevelScreen::loadLevel()
         if ( obj->sprite->textureBounds.y == 0  // HOUSE
             || obj->sprite->textureBounds.y == 1 ) // TOWER
         {
-            updateDistanceMap(DistanceMapType::VILLAGE_DISTANCE, {obj->worldBounds.x+1, obj->worldBounds.y+1}, false, 10);
+            updateDistanceMap(DistanceMapType::VILLAGE_DISTANCE, {obj->worldBounds.x+1, obj->worldBounds.y+1}, false, true, 10);
         }
     }
 }
@@ -310,6 +311,18 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
                 {0.2, {16.0,0.0,16.0,32.0}},
                 {0.2, {32.0,0.0,16.0,32.0}},
                 {0.2, {48.0,0.0,16.0,32.0}}
+            }}},
+            {CharacterState::CHAR_CATCH_FIRE,
+            (Animation){1, {}, /// TODO add action to transit to CHAR_BURNING
+            {   {0.2, {64.0,0.0,16.0,32.0}},
+                {0.2, {80.0,0.0,16.0,32.0}},
+                {0.2, {96.0,0.0,16.0,32.0}}
+            }}},
+            {CharacterState::CHAR_BURNING,
+            (Animation){-1, {},
+            {   {0.2, {112.0,0.0,16.0,32.0}},
+                {0.2, {128.0,0.0,16.0,32.0}},
+                {0.2, {144.0,0.0,16.0,32.0}}
             }}}};
     objectWorldBounds.x = x;
     objectWorldBounds.y = y;
@@ -342,6 +355,9 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
                     objectScreenBounds,
                     objectTexture,
                     objectAnimations));
+    obj->strategy[CharacterState::CHAR_IDLE] = strategy::idleObject;
+    obj->strategy[CharacterState::CHAR_BURNING] = strategy::burningObject;
+    obj->strategy[CharacterState::CHAR_CATCH_FIRE] = strategy::startBurningObject;
     /// TODO random start time for animation
     obj->sprite->animationState.activeFrame = GetRandomValue(0,obj->sprite->animations[obj->sprite->animationState.activeAnimation].frames.size());
     obj->sprite->animationState.frameDelta = 
@@ -502,12 +518,12 @@ void LevelScreen::movePlayer(float delta)
         lastPlayerGridPos = newPlayerGridPos;
         updateDistanceMap(DistanceMapType::PLAYER_DISTANCE,
             {this->player->worldBounds.x+1, this->player->worldBounds.y+1},
-            true,
+            true, true,
             20);
     }
 }
 
-void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, int distMax)
+void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax)
 {
     /// reset
     if ( clean )
@@ -547,9 +563,8 @@ void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clea
             {
                 continue;
             }
-            /// THIS IS BAD !!!
             bool collision = false;
-            if ( this->objects.count(pos) > 0 || this->objects.count({pos.x,pos.y-1}) > 0)
+            if ( ignoreObjects && (this->objects.count(pos) > 0 || this->objects.count({pos.x,pos.y-1}) > 0))
             {
                 continue;
             }
@@ -574,7 +589,7 @@ bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
     /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
     for ( Character *target : this->drawableObjects )
     {
-        if ( target != source && CheckCollisionRecs(worldBounds, target->worldBounds))
+        if ( target != source && CheckCollisionPointRec({worldBounds.x + 0.5f, worldBounds.y + 0.5f}, target->worldBounds))
         {
             return true;
         }
@@ -649,6 +664,18 @@ void LevelScreen::updateNPCs(float delta)
         }
     }
 }
+
+void LevelScreen::updateObjects(float delta)
+{
+    for ( auto tmp : this->objects )
+    {
+        Character *obj = tmp.second;
+        if ( obj->strategy.count(obj->state) > 0 )
+        {
+            obj->strategy[obj->state](obj, this->distanceMaps);
+        }
+    }
+}
 void LevelScreen::checkWinCondition()
 {
     if ( player->stats.HP > 0 )
@@ -662,7 +689,7 @@ void LevelScreen::checkWinCondition()
                 ++sumRemaining;
             }
         }
-        std::cerr << "sumRemaining: " << sumRemaining << " threshold: " << this->winThreshold << "\n";
+        //std::cerr << "sumRemaining: " << sumRemaining << " threshold: " << this->winThreshold << "\n";
         if ( sumRemaining < this->winThreshold )
         {
             this->isDone = true;
@@ -691,6 +718,27 @@ void LevelScreen::update(float delta)
         }
         this->updateDistanceMap(this->selectedDebugDistanceMap,LevelScreen::ScreenToWorld(this,GetMousePosition()));
         DebugStats::getInstance().printStats();
+    }
+    if ( IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) )
+    {
+        Vector2 clickPos = LevelScreen::ScreenToWorld(this, GetMousePosition());
+        GridPos clickGrid = {clickPos.x + 1, clickPos.y + 1};
+        if ( (this->objects.count(clickGrid) > 0 )
+            && (this->objects[clickGrid]->state == CharacterState::CHAR_IDLE ) )
+        {
+            this->objects[clickGrid]->state = CharacterState::CHAR_CATCH_FIRE;
+            this->objects[clickGrid]->sprite->animationState.activeAnimation = CharacterState::CHAR_CATCH_FIRE;
+            this->objects[clickGrid]->sprite->animationState.activeFrame = 0;
+            this->objects[clickGrid]->sprite->animationState.currentLoop = 0;
+            this->objects[clickGrid]->sprite->animationState.frameDelta = 0;
+            this->updateDistanceMap(DistanceMapType::FIRE_DISTANCE,
+                clickGrid, false, false, 99);
+            std::cerr << "set object on fire at " << clickGrid.x << " " << clickGrid.y <<"\n";
+        }
+        else
+        {
+            std::cerr << "nothing to burn at " << clickGrid.x << " " << clickGrid.y << "\n";
+        }
     }
     // cycle through distance maps - NOTE: write the active distance map somewhere
     static bool isKeyQPressed = true;
@@ -742,6 +790,7 @@ void LevelScreen::update(float delta)
 
     checkWinCondition();
 
+    updateObjects(delta);
     updateNPCs(delta);
 
     movePlayer(delta);

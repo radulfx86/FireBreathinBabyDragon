@@ -67,7 +67,9 @@ enum class CharacterState
     CHAR_ATTACK_S = 8,
     CHAR_ATTACK_W = 9,
     CHAR_SPECIAL_1 = 10,
-    CHAR_SPECIAL_2 = 11};
+    CHAR_SPECIAL_2 = 11,
+    CHAR_CATCH_FIRE = 12,
+    CHAR_BURNING = 13};
 
 /// character status values
 typedef struct WorldObjectStatus

@@ -41,6 +41,7 @@ add_executable(${PROJECT_NAME}
     src/screens/gameoverScreen.cpp
     src/screens/ui.cpp
     src/strategy/villagerStrategy.cpp
+    src/strategy/objectStrategy.cpp
     src/utils/datastore.cpp
     src/utils/debugStats.cpp)
 

@@ -31,7 +31,7 @@ public:
             // texture bounds
             {0.0,16.0,16.0,16.0},
             // screen bounds
-            {100.0,0.0,16.0f * scale, 16.0f * scale},
+            {200.0,0.0,16.0f * scale, 16.0f * scale},
             this->texture,
             {{CharacterState::CHAR_IDLE,
             (Animation){-1, {},

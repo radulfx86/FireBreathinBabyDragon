@@ -193,7 +193,7 @@ private:
     bool checkCollision(Character *source, Rectangle worldBounds);
     Character* getCollision(Character *source, Rectangle worldBounds);
     void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
-    void updatePlayerDistanceMap();
+    void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, int distMax);
     void sortDrawableObjects();
     void checkWinCondition();
     Camera2D camera;

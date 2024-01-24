@@ -120,6 +120,31 @@ void LevelScreen::loadLevel()
     }
     UnloadImage(levelImageData);
 
+    for (int type = 0; type < 4; ++type )
+    {
+        distanceMaps[static_cast<DistanceMapType>(type)].resize(levelSize.x,std::vector<int>(levelSize.y));
+        //updateDistanceMap(static_cast<DistanceMapType>(i), {this->levelSize.x/2, this->levelSize.y/2});
+                std::for_each(std::execution::par_unseq,
+                    this->distanceMaps[type].begin(),
+                    this->distanceMaps[type].end(), 
+                    [](std::vector<int> &dist){
+//                        std::memset(&dist[0], -1, sizeof(int)*dist.size());
+                        std::for_each(std::execution::par_unseq,
+                                        dist.begin(),
+                                        dist.end(),
+                                        [](int &n) { n = -1; });
+        });
+    }
+    // find a better solution to find villages !!!
+    for ( auto tmp : this->objects )
+    {
+        Character *obj = tmp.second;
+        if ( obj->sprite->textureBounds.y == 0  // HOUSE
+            || obj->sprite->textureBounds.y == 1 ) // TOWER
+        {
+            updateDistanceMap(DistanceMapType::VILLAGE_DISTANCE, {obj->worldBounds.x+1, obj->worldBounds.y+1}, false, 10);
+        }
+    }
 }
 
 void LevelScreen::addCharacter(CharacterType charType, int x, int y)
@@ -365,11 +390,6 @@ void LevelScreen::initialize()
 
     loadUI();
 
-    for (int i = 0; i < 4; ++i )
-    {
-        distanceMaps[static_cast<DistanceMapType>(i)].resize(levelSize.x,std::vector<int>(levelSize.y));
-        updateDistanceMap(static_cast<DistanceMapType>(i), {this->levelSize.x/2, this->levelSize.y/2});
-    }
 }
 void LevelScreen::finalize()
 {
@@ -480,35 +500,39 @@ void LevelScreen::movePlayer(float delta)
     if ( newPlayerGridPos != this->lastPlayerGridPos )
     {
         lastPlayerGridPos = newPlayerGridPos;
-        updatePlayerDistanceMap();
+        updateDistanceMap(DistanceMapType::PLAYER_DISTANCE,
+            {this->player->worldBounds.x+1, this->player->worldBounds.y+1},
+            true,
+            20);
     }
 }
 
-void LevelScreen::updatePlayerDistanceMap()
+void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, int distMax)
 {
     /// reset
-    std::for_each(std::execution::par_unseq,
-                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].begin(),
-                    this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].end(), 
+    if ( clean )
+    {
+        std::for_each(std::execution::par_unseq,
+                    this->distanceMaps[type].begin(),
+                    this->distanceMaps[type].end(), 
                     [](std::vector<int> &dist){
 //                        std::memset(&dist[0], -1, sizeof(int)*dist.size());
                         std::for_each(std::execution::par_unseq,
                                         dist.begin(),
                                         dist.end(),
                                         [](int &n) { n = -1; });
-     });
+        });
+    }
     const int MAX_STEP = 1000;
-    const int DIST_MAX = 20;
     bool done = false;
     using Dist_t = struct {int dist; GridPos pos;};
     const GridPos directions[] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
     std::queue<Dist_t> queue;
-    queue.push((Dist_t){0, {this->player->worldBounds.x+1, this->player->worldBounds.y+1}});
-    int cnt = 0;
+    queue.push((Dist_t){0, pos});
     for ( int step = 0; (!queue.empty()) && step < MAX_STEP; ++step )
     {
         Dist_t current = queue.front();
-        if ( current.dist > DIST_MAX )
+        if ( current.dist > distMax )
         {
             break;
         }
@@ -529,11 +553,11 @@ void LevelScreen::updatePlayerDistanceMap()
             {
                 continue;
             }
-            if ( (this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y] == -1 ||
-                    current.dist < this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y])
+            if ( (this->distanceMaps[type][pos.x][pos.y] == -1 ||
+                    current.dist < this->distanceMaps[type][pos.x][pos.y])
                 )
             {
-                this->distanceMaps[DistanceMapType::PLAYER_DISTANCE][pos.x][pos.y] = current.dist;
+                this->distanceMaps[type][pos.x][pos.y] = current.dist;
                 queue.push((Dist_t){current.dist+1, pos.x, pos.y});
             }
             else
@@ -541,7 +565,6 @@ void LevelScreen::updatePlayerDistanceMap()
                 continue;
             }
         }
-        ++cnt;
     }
 }
 
@@ -753,7 +776,8 @@ void LevelScreen::draw(float delta)
         {
             for ( int x = 0; x < this->levelSize.x; ++x )
             {
-                if ( distanceMaps.count(selectedDebugDistanceMap))
+                if ( distanceMaps.count(selectedDebugDistanceMap)
+                    && (distanceMaps[selectedDebugDistanceMap][x][y] >= 0))
                 {
                     Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
                     distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);

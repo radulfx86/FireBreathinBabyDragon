@@ -11,28 +11,28 @@ bool getNextState(int &x, int &y, CharacterState &dir, DistanceMap distanceMap)
     int dist = distanceMap[x][y];
     bool update = false;
     // left
-    if ( x > 0 && distanceMap[x-1][y] < dist )
+    if ( x > 0 && distanceMap[x-1][y] >= 0 && distanceMap[x-1][y] < dist )
     {
         dist = distanceMap[x-1][y];
         dir = CharacterState::CHAR_WALK_W;
         TraceLog(LOG_DEBUG, "%s, left dist: %d", __func__, dist);
         update = true;
     } // right
-    if ( x < maxX && distanceMap[x+1][y] < dist )
+    if ( x < maxX && distanceMap[x+1][y] >= 0 && distanceMap[x+1][y] < dist )
     {
         dist = distanceMap[x+1][y];
         dir = CharacterState::CHAR_WALK_E;
         TraceLog(LOG_DEBUG, "%s, right dist: %d", __func__, dist);
         update = true;
     } // up
-    if ( y > 0 && distanceMap[x][y-1] < dist )
+    if ( y > 0 && distanceMap[x][y-1] >= 0 && distanceMap[x][y-1] < dist )
     {
         dist = distanceMap[x][y-1];
         dir = CharacterState::CHAR_WALK_N;
         TraceLog(LOG_DEBUG, "%s, up dist: %d", __func__, dist);
         update = true;
     } // down
-    if ( y < maxY && distanceMap[x][y+1] < dist )
+    if ( y < maxY && distanceMap[x][y+1] >= 0 && distanceMap[x][y+1] < dist )
     {
         dist = distanceMap[x][y+1];
         dir = CharacterState::CHAR_WALK_S;
@@ -41,6 +41,7 @@ bool getNextState(int &x, int &y, CharacterState &dir, DistanceMap distanceMap)
     }
     if ( !update )
     {
+        dir = CharacterState::CHAR_IDLE;
         TraceLog(LOG_DEBUG, "%s did not update position - distance at %d, {%d, %d, %d, %d}",
             __func__, dist,
             distanceMap[x][y-1], distanceMap[x+1][y],
@@ -56,8 +57,8 @@ bool idleVillager(Character *character, float delta, MappedDistanceMaps distance
         return false;
     }
     CharacterState newState = CharacterState::CHAR_IDLE;
-    int x = static_cast<int>(character->worldBounds.x);
-    int y = static_cast<int>(character->worldBounds.y);
+    int x = static_cast<int>(character->worldBounds.x+0.5f);
+    int y = static_cast<int>(character->worldBounds.y+0.5f);
     if ( distanceMaps.count(0) )
     {
         getNextState(x, y, newState, distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
@@ -79,8 +80,8 @@ bool moveVillager(Character *character, float delta, MappedDistanceMaps distance
         return false;
     }
     CharacterState newState = CharacterState::CHAR_IDLE;
-    int x = static_cast<int>(character->worldBounds.x);
-    int y = static_cast<int>(character->worldBounds.y);
+    int x = static_cast<int>(character->worldBounds.x+.5f);
+    int y = static_cast<int>(character->worldBounds.y+.5f);
     if ( distanceMaps.count(0) )
     {
         getNextState(x, y, newState, distanceMaps[DistanceMapType::PLAYER_DISTANCE]);

@@ -154,7 +154,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
     if ( charType == CharacterType::PLAYER )
     {
         this->charSpeedMax = 10.0;
-        this->charSpeed = {10.0f, 0.0f};
+        this->charSpeed = {0.0f, 0.0f};
         this->charAcc = 50.0;
 
         Rectangle playerWorldBounds{x,y,2,2};
@@ -301,7 +301,7 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
     objectWorldBounds.height = 2;
     WorldObjectStatus initialObjectStats = {10,10};
     Rectangle objectScreenBounds{0,0,1,2};
-    Rectangle objectTextureBounds{0,0,32,32};
+    Rectangle objectTextureBounds{0,0,16,32};
     const int MAX_OBJECTS = 20;
     this->winThreshold = MAX_OBJECTS/10;
     std::map<CharacterState, Animation> objectAnimations = 
@@ -641,6 +641,14 @@ void LevelScreen::moveNPCs(float delta)
         {
             Rectangle tempBounds = npc->worldBounds;
             tempBounds.x += deltaPos.x;
+            if ( not this->checkCollision(npc, tempBounds) )
+            {
+                npc->worldBounds = tempBounds;
+                npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
+                npc->sprite->screenBounds = npc->screenBounds;
+                TraceLog(LOG_DEBUG,"%s(%s) by {%.0f,%.0f} to screenPos {%.0f,%.0f}",
+                    __func__, npc->name, deltaPos.x, deltaPos.y, npc->screenBounds.x, npc->screenBounds.y);
+            }
             tempBounds.y += deltaPos.y;
             if ( not this->checkCollision(npc, tempBounds) )
             {

@@ -10,6 +10,15 @@
 #include <queue>
 #include <cstring>
 
+void playFireBreath()
+{
+    auto sound = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
+    if ( IsSoundReady(sound) && not IsSoundPlaying(sound) )
+    {
+        PlaySound(sound);
+    }
+}
+
 void InfoScreen::draw(float delta)
 {
     sumDelta += delta;
@@ -172,6 +181,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
                 {CharacterState::CHAR_ATTACK_S, playerAnimationAttackS},
                 {CharacterState::CHAR_ATTACK_N, playerAnimationAttackN},
                 {CharacterState::CHAR_DIE, playerAnimationDie}};
+        playerAnimations[CharacterState::CHAR_ATTACK_E].triggers[0] = playFireBreath;
         this->player = new Character("player", CharacterState::CHAR_IDLE,
             initialPlayerStats,
             playerWorldBounds,

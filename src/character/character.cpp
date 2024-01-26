@@ -46,6 +46,11 @@ void AnimatedSprite::draw(float delta)
             if ( nextFrame != this->animationState.activeFrame )
             {
                 this->animationState.activeFrame = nextFrame;
+                // check triggers
+                if ( this->animations[this->animationState.activeAnimation].triggers.count(nextFrame) > 0 )
+                {
+                    this->animations[this->animationState.activeAnimation].triggers[nextFrame]();
+                }
             }
             if ( tmpDelta > FRAMESKIP_MAX )
             {

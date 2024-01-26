@@ -38,14 +38,11 @@ using ActionFunction = bool (*)(Character *);
  * @param distanceMap   distances for every coordinate to something ...
  */
 using StateFunction = bool (*)(Character *, float, MappedDistanceMaps); 
-/// forward declaration for AnimationTrigger
-class Animation;
 /**
  * @brief type for function to be called along with a frame in an animation
  * @note to be used for e.g. splash-animations, ...
- * @param animation pointer to animation
  */
-using AnimationTrigger = void (*)(Animation *);
+using AnimationTrigger = void (*)();
 /**
  * @brief type for an animation frame
  * @param delta time in [s] for which the frame is shown

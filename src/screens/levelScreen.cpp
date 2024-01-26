@@ -162,6 +162,16 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         playerScreenBounds.width = 32;
         playerScreenBounds.height = 32;
         WorldObjectStatus initialPlayerStats = {10,10};
+        std::map<CharacterState, Animation> playerAnimations = {{CharacterState::CHAR_IDLE, playerAnimationIdle},
+                {CharacterState::CHAR_WALK_E, playerAnimationWalkE},
+                {CharacterState::CHAR_WALK_W, playerAnimationWalkW},
+                {CharacterState::CHAR_WALK_S, playerAnimationWalkS},
+                {CharacterState::CHAR_WALK_N, playerAnimationWalkN},
+                {CharacterState::CHAR_ATTACK_E, playerAnimationAttackE},
+                {CharacterState::CHAR_ATTACK_W, playerAnimationAttackW},
+                {CharacterState::CHAR_ATTACK_S, playerAnimationAttackS},
+                {CharacterState::CHAR_ATTACK_N, playerAnimationAttackN},
+                {CharacterState::CHAR_DIE, playerAnimationDie}};
         this->player = new Character("player", CharacterState::CHAR_IDLE,
             initialPlayerStats,
             playerWorldBounds,
@@ -169,8 +179,8 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
             new AnimatedSprite(
                 {0.0,0.0,32.0,32.0},
                 playerScreenBounds,
-                Datastore::getInstance().getTexture("images/dragon_0_20240112_01.png"),
-                {{CharacterState::CHAR_IDLE, idleDragon}}
+                Datastore::getInstance().getTexture("images/dragon_1.png"),
+                playerAnimations
         ));
         this->drawableObjects.push_back(this->player);
         std::cerr << " add player at " << player->worldBounds.x << " " << player->worldBounds.y << "\n";
@@ -334,7 +344,7 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
             break;
         case ObjectType::TREE:
             objectTextureBounds.y = GetRandomValue(3,4) * 32;
-            objectTextureBounds.y = 3 * 32;
+            //objectTextureBounds.y = 3 * 32;
             break;
         case ObjectType::TOWER:
             objectTextureBounds.y = 1 * 32;
@@ -430,6 +440,7 @@ void LevelScreen::movePlayer(float delta)
     if ( IsKeyDown(KEY_W) ) // move up
     {
         spdDelta.y -= delta * this->charAcc;
+        this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_WALK_N;
     }
     else
     {
@@ -441,6 +452,7 @@ void LevelScreen::movePlayer(float delta)
     if ( IsKeyDown(KEY_A) ) // move left
     {
         spdDelta.x -= delta * this->charAcc;
+        this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_WALK_W;
     }
     else
     {
@@ -452,6 +464,7 @@ void LevelScreen::movePlayer(float delta)
     if ( IsKeyDown(KEY_S) ) // move down
     {
         spdDelta.y += delta * this->charAcc;
+        this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_WALK_S;
     }
     else
     {
@@ -463,6 +476,7 @@ void LevelScreen::movePlayer(float delta)
     if ( IsKeyDown(KEY_D) ) // move right
     {
         spdDelta.x += delta * this->charAcc;
+        this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_WALK_E;
     }
     else
     {
@@ -508,11 +522,39 @@ void LevelScreen::movePlayer(float delta)
     this->player->screenBounds.y = screenPos.y;
     this->player->sprite->screenBounds = this->player->screenBounds;
 
-    /// simple NPC kill
-    Character *hit = this->getCollision(this->player, this->player->worldBounds);
-    if ( hit )
+    if ( IsKeyDown(KEY_SPACE) )
     {
-        hit->stats.HP = 0;
+        switch (this->player->sprite->animationState.activeAnimation )
+        {
+            case CharacterState::CHAR_WALK_E:
+                // fall through
+            case CharacterState::CHAR_ATTACK_E:
+                this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_E;
+                break;
+            case CharacterState::CHAR_WALK_W:
+                // fall through
+            case CharacterState::CHAR_ATTACK_W:
+                this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_W;
+                break;
+            case CharacterState::CHAR_WALK_S:
+                // fall through
+            case CharacterState::CHAR_ATTACK_S:
+                this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_S;
+                break;
+            case CharacterState::CHAR_WALK_N:
+                // fall through
+            case CharacterState::CHAR_ATTACK_N:
+                this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_N;
+                break;
+            default:
+                break;
+        }
+        /// simple NPC kill
+        Character *hit = this->getCollision(this->player, this->player->worldBounds);
+        if ( hit )
+        {
+            hit->stats.HP = 0;
+        }
     }
     if ( newPlayerGridPos != this->lastPlayerGridPos )
     {
@@ -520,7 +562,7 @@ void LevelScreen::movePlayer(float delta)
         updateDistanceMap(DistanceMapType::PLAYER_DISTANCE,
             {this->player->worldBounds.x+1, this->player->worldBounds.y+1},
             true, true,
-            20);
+            200);
     }
 }
 
@@ -533,11 +575,13 @@ void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clea
                     this->distanceMaps[type].begin(),
                     this->distanceMaps[type].end(), 
                     [](std::vector<int> &dist){
-//                        std::memset(&dist[0], -1, sizeof(int)*dist.size());
+                        std::memset(&dist[0], -1, sizeof(int)*dist.size());
+                        /*
                         std::for_each(std::execution::par_unseq,
                                         dist.begin(),
                                         dist.end(),
                                         [](int &n) { n = -1; });
+                                        */
         });
     }
     const int MAX_STEP = 1000;
@@ -736,6 +780,7 @@ void LevelScreen::checkWinCondition()
     }
     else
     {
+        this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_DIE;
         std::cerr << "gameover, player HP: " << player->stats.HP << "\n";
         this->isGameOver = true;
     }

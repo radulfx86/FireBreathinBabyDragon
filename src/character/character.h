@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <functional>
 
 const int FRAMESKIP_MAX = 10.0;
 
@@ -42,7 +43,7 @@ using StateFunction = bool (*)(Character *, float, MappedDistanceMaps);
  * @brief type for function to be called along with a frame in an animation
  * @note to be used for e.g. splash-animations, ...
  */
-using AnimationTrigger = void (*)();
+using AnimationTrigger = std::function<void(void)>;
 /**
  * @brief type for an animation frame
  * @param delta time in [s] for which the frame is shown
@@ -76,6 +77,8 @@ typedef struct WorldObjectStatus
     int HP;
     /// energy points
     int EP;
+    /// attack points
+    int AP;
 };
 
 /// Animation structure

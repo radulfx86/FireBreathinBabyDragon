@@ -23,6 +23,9 @@ GridPos operator+(const GridPos &a, const GridPos &b)
 {
     return (GridPos){a.x+b.x, a.y+b.y};
 }
+/// pattern where to apply damage to
+using AttackPattern = std::map<Direction,std::vector<GridPos>>;
+
 
 using ObjectType = enum {
     HOUSE = 0,
@@ -167,6 +170,14 @@ public:
             return {0,0};
         }
     }
+    void forceGameover()
+    {
+        this->isGameOver = true;
+    }
+    bool inBounds(GridPos p)
+    {
+        return p.x >= 0 && p.y >= 0 && p.x < this->levelSize.x && p.y < this->levelSize.y;
+    }
 private:
     /// TODO total mess below, CLEAN UP @Radulf
     Vector2 charSpeed;
@@ -198,6 +209,7 @@ private:
     void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax);
     void sortDrawableObjects();
     void checkWinCondition();
+    void performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern);
     Camera2D camera;
     Vector2 levelSize;
 

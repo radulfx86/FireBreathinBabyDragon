@@ -19,6 +19,45 @@ void playFireBreath()
     }
 }
 
+/**
+ * @brief attack pattern for guard. e.g. for east:
+ *       X X
+ *  X -> X X X
+ *       X X
+ */
+AttackPattern playerAttackPattern = {
+{ Direction::DIR_E, {{1, 0}, {2, 0}, {3, 0}, {1, 1}, {1, -1}, {2, 1}, {2, -1}}},
+{ Direction::DIR_W, {{-1, 0}, {-2, 0}, {-3, 0}, {-1, 1}, {-1, -1}, {-2, 1}, {-2, -1}}},
+{ Direction::DIR_N, {{0, -1}, {0, -2}, {0, -3}, {1, -1}, {-1, -1}, {-1, -2}, {-1, -2}}},
+{ Direction::DIR_S, {{0, 1}, {0, 2}, {0, 3}, {1, 1}, {-1, 1}, {1, 2}, {-1, 2}}},
+};
+
+/**
+ * @brief attack pattern for guard. e.g. for east:
+ *       X
+ *  X -> X X
+ *       X
+ */
+AttackPattern guardAttackPattern = {
+{ Direction::DIR_E, {{1, 0}, {2, 0}, {1, 1}, {1, -1}}},
+{ Direction::DIR_W, {{-1, 0}, {-2, 0}, {-1, 1}, {-1, -1}}},
+{ Direction::DIR_N, {{0, -1}, {0, -2}, {1, -1}, {-1, -1}}},
+{ Direction::DIR_S, {{0, 1}, {0, 2}, {1, 1}, {-1, 1}}},
+};
+
+/**
+ * @brief "attack" pattern of villagers:
+ *       X
+ *  X -> X
+ *       X
+ */
+AttackPattern villagerAttackPattern = {
+{ Direction::DIR_E, {{1, 0}, {1, 1}, {1, -1}}},
+{ Direction::DIR_W, {{-1, 0}, {-1, 1}, {-1, -1}}},
+{ Direction::DIR_N, {{0, -1}, {1, -1}, {-1, -1}}},
+{ Direction::DIR_S, {{0, 1}, {1, 1}, {-1, 1}}},
+};
+
 void InfoScreen::draw(float delta)
 {
     sumDelta += delta;
@@ -170,7 +209,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
         playerScreenBounds.width = 32;
         playerScreenBounds.height = 32;
-        WorldObjectStatus initialPlayerStats = {10,10};
+        WorldObjectStatus initialPlayerStats = {10,10,2};
         std::map<CharacterState, Animation> playerAnimations = {{CharacterState::CHAR_IDLE, playerAnimationIdle},
                 {CharacterState::CHAR_WALK_E, playerAnimationWalkE},
                 {CharacterState::CHAR_WALK_W, playerAnimationWalkW},
@@ -182,6 +221,12 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
                 {CharacterState::CHAR_ATTACK_N, playerAnimationAttackN},
                 {CharacterState::CHAR_DIE, playerAnimationDie}};
         playerAnimations[CharacterState::CHAR_ATTACK_E].triggers[0] = playFireBreath;
+        playerAnimations[CharacterState::CHAR_ATTACK_W].triggers[0] = playFireBreath;
+        playerAnimations[CharacterState::CHAR_ATTACK_N].triggers[0] = playFireBreath;
+        playerAnimations[CharacterState::CHAR_ATTACK_S].triggers[0] = playFireBreath;
+        /// NOTE: how is this possible ... 
+        auto setGameover = [&](LevelScreen *s) { s->forceGameover(); };
+        playerAnimations[CharacterState::CHAR_DIE].triggers[playerAnimationDie.frames.size()-1] = [&](){ setGameover(this); };
         this->player = new Character("player", CharacterState::CHAR_IDLE,
             initialPlayerStats,
             playerWorldBounds,
@@ -203,7 +248,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         Rectangle npcWorldBounds;
         npcWorldBounds.width = 1;
         npcWorldBounds.height = 1;
-        WorldObjectStatus initialNPCStats = {10,10};
+        WorldObjectStatus initialNPCStats = {10,10,-5};
         Rectangle npcScreenBounds{0,0,16,16};
         Rectangle npcTextureBounds{0,0,16,16};
         std::map<CharacterState, Animation> npcAnimations = {
@@ -246,7 +291,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         {
             case VILLAGER:
             {
-                npc->name = "meh";
+                npc->name = "Villager";
                 npc->sprite->textureBounds.y = 0 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleVillager;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveVillager;
@@ -261,6 +306,9 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
             }
             case GUARD:
             {
+                npc->name = "Guard";
+                npc->stats.AP = 2;
+                npc->stats.EP = 5;
                 npc->sprite->textureBounds.y = 2 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleGuard;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveGuard;
@@ -275,6 +323,9 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
             }
             case MAGE:
             {
+                npc->name = "Mage";
+                npc->stats.AP = 5;
+                npc->stats.EP = 15;
                 npc->sprite->textureBounds.y = 3 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleMage;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveMage;
@@ -289,6 +340,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
             }
             case HERO:
             {
+                npc->name = "Hero";
                 /// hero for now cosplays as female villager
                 npc->sprite->textureBounds.y = 1 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleHero;
@@ -534,31 +586,37 @@ void LevelScreen::movePlayer(float delta)
 
     if ( IsKeyDown(KEY_SPACE) )
     {
+        Direction attackDir = Direction::DIR_E;
         switch (this->player->sprite->animationState.activeAnimation )
         {
             case CharacterState::CHAR_WALK_E:
                 // fall through
             case CharacterState::CHAR_ATTACK_E:
                 this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_E;
+                attackDir = Direction::DIR_E;
                 break;
             case CharacterState::CHAR_WALK_W:
                 // fall through
             case CharacterState::CHAR_ATTACK_W:
                 this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_W;
+                attackDir = Direction::DIR_W;
                 break;
             case CharacterState::CHAR_WALK_S:
                 // fall through
             case CharacterState::CHAR_ATTACK_S:
                 this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_S;
+                attackDir = Direction::DIR_S;
                 break;
             case CharacterState::CHAR_WALK_N:
                 // fall through
             case CharacterState::CHAR_ATTACK_N:
                 this->player->sprite->animationState.activeAnimation = CharacterState::CHAR_ATTACK_N;
+                attackDir = Direction::DIR_N;
                 break;
             default:
                 break;
         }
+        performAttack(this->player, delta, playerAttackPattern[attackDir]);
         /// simple NPC kill
         Character *hit = this->getCollision(this->player, this->player->worldBounds);
         if ( hit )
@@ -573,6 +631,26 @@ void LevelScreen::movePlayer(float delta)
             {this->player->worldBounds.x+1, this->player->worldBounds.y+1},
             true, true,
             200);
+    }
+}
+void LevelScreen::performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern)
+{
+    if ( directedAttackPattern.size() == 0 )
+    {
+        return;
+    }
+    GridPos center = {source->worldBounds.x + 0.5f, source->worldBounds.y + 0.5};
+    float baseDmg = source->stats.AP * delta;
+    float dmg = baseDmg / directedAttackPattern.size();
+    for ( GridPos pos : directedAttackPattern )
+    {
+        GridPos tmp = center + pos;
+        if ( inBounds(tmp) && this->objects.count(tmp) )
+        {
+            this->objects[tmp]->stats.HP -= dmg;
+            // remove absolute amount of dmg (villagers/healers do negative dmg)
+            source->stats.EP -= fabs(dmg);
+        }
     }
 }
 

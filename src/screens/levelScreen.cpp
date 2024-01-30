@@ -209,7 +209,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
         playerScreenBounds.width = 32;
         playerScreenBounds.height = 32;
-        WorldObjectStatus initialPlayerStats = {10,10,2};
+        WorldObjectStatus initialPlayerStats = {10,1000,2};
         std::map<CharacterState, Animation> playerAnimations = {{CharacterState::CHAR_IDLE, playerAnimationIdle},
                 {CharacterState::CHAR_WALK_E, playerAnimationWalkE},
                 {CharacterState::CHAR_WALK_W, playerAnimationWalkW},
@@ -471,7 +471,7 @@ void LevelScreen::initialize()
     this->camera.rotation = 0;
     this->camera.target = {640, 480};
     this->camera.zoom = 1.0;
-    //SetTargetFPS(-1);
+    SetTargetFPS(-1);
 
     this->infoScreen = new InfoScreen({400,10});
 
@@ -639,6 +639,11 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
     {
         return;
     }
+    if ( source->stats.EP <= 0.0 )
+    {
+        source->stats.EP = 0.0;
+        return;   
+    }    
     GridPos center = {source->worldBounds.x + 0.5f, source->worldBounds.y + 0.5};
     float baseDmg = source->stats.AP * delta;
     float dmg = baseDmg / directedAttackPattern.size();
@@ -647,6 +652,23 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
         GridPos tmp = center + pos;
         if ( inBounds(tmp) && this->objects.count(tmp) )
         {
+            this->particles.push_back(new Particle(new AnimatedSprite(
+                // texture bounds
+                {0.0,16.0,16.0,16.0},
+                // screen bounds
+                LevelScreen::WorldToScreen(this, source->worldBounds),
+                Datastore::getInstance().getTexture("images/ui.png"),
+                {{CharacterState::CHAR_IDLE,
+                (Animation){-1, {},
+                {   {0.2, {0.0,0.0,16.0,16.0}},
+                    {0.2, {16.0,0.0,16.0,16.0}},
+                    {0.2, {32.0,0.0,16.0,16.0}},
+                    {0.2, {48.0,0.0,16.0,16.0}},
+                    {0.2, {64.0,0.0,16.0,16.0}},
+                    {0.2, {80.0,0.0,16.0,16.0}}
+                }}}}),
+                {tmp.x, tmp.y},
+                {pos.x, pos.y}, 2.0, [](Particle *notUsed) { /* do nothing*/; return false; }));
             this->objects[tmp]->stats.HP -= dmg;
             // remove absolute amount of dmg (villagers/healers do negative dmg)
             source->stats.EP -= fabs(dmg);
@@ -847,6 +869,22 @@ void LevelScreen::updateObjects(float delta)
         }
     }
 }
+
+void LevelScreen::updateParticles(float delta)
+{
+    std::vector<Particle *> newParticles;
+    for ( Particle *particle : this->particles )
+    {
+        if ( particle->update(delta, this) )
+        {
+            newParticles.push_back(particle);
+        }
+    }
+    std::cerr << "updated " << this->particles.size() << " surviving: " << newParticles.size() << "\n";
+    this->particles.swap(newParticles);
+
+}
+
 void LevelScreen::checkWinCondition()
 {
     if ( player->stats.HP > 0 )
@@ -964,6 +1002,7 @@ void LevelScreen::update(float delta)
 
     updateObjects(delta);
     updateNPCs(delta);
+    updateParticles(delta);
 
     movePlayer(delta);
     moveNPCs(delta);
@@ -1015,6 +1054,14 @@ void LevelScreen::draw(float delta)
             if ( object->sprite && object->stats.HP > 0 )
             {
                 object->sprite->draw(delta);
+            }
+        }
+
+        for (Particle *particle : this->particles)
+        {
+            if ( particle->isAlive() )
+            {
+                particle->draw(delta);
             }
         }
 

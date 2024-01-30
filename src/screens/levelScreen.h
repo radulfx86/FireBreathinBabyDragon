@@ -1,6 +1,7 @@
 #ifndef LEVEL_SCREEN_H
 #define LEVEL_SCREEN_H
 #include "game.h"
+#include "particle.h"
 #include "ui.h"
 #include <unordered_map>
 #define MAX_LEVEL_SIZE_X 1000u
@@ -201,6 +202,7 @@ private:
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
+    void updateParticles(float delta);
     /// TODO merge with updateNPCs
     void updateObjects(float delta);
     bool checkCollision(Character *source, Rectangle worldBounds);
@@ -217,6 +219,7 @@ private:
     /// TBD: is there no way to actually use the tileMap for this?
     std::map<GridPos,Character*> objects;
     std::vector<Character*> drawableObjects;
+    std::vector<Particle*> particles;
     /// this is ugly
     GridPos lastPlayerGridPos;
     Character *player;

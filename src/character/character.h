@@ -1,7 +1,7 @@
 #ifndef CHARACTER_H
 #define CHARACTER_H
 
-#include "raylib.h"
+#include <raylib.h>
 #include <map>
 #include <vector>
 #include <string>
@@ -79,7 +79,7 @@ typedef struct WorldObjectStatus
     int EP;
     /// attack points
     int AP;
-};
+} WorldObjectStatus;
 
 /// Animation structure
 typedef struct Animation

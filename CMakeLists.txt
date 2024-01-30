@@ -30,6 +30,7 @@ add_executable(${PROJECT_NAME}
     src/game.cpp
     src/demos.cpp
     src/character/character.cpp
+    src/character/particle.cpp
     src/demos/animationDemo.cpp
     src/demos/tileDemo.cpp
     src/demos/motionDemo.cpp

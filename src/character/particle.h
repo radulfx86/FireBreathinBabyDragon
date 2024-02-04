@@ -30,9 +30,11 @@ private:
 /// forward declaration for trigger
 class Particle;
 /// forward declaration for trigger
+class Level;
+/// forward declaration for update function
 class LevelScreen;
 /// trigger function for particle after 
-using ParticleTriggerFunction = std::function<bool(Particle *, LevelScreen *)>;
+using ParticleTriggerFunction = std::function<bool(Particle *, Level *)>;
 
 /// Particle @todo make more lightweight?
 class Particle
@@ -71,17 +73,18 @@ public:
      * @note call trigger-function if not alive after update
      * 
      * @param delta     delta time [s] for update
-     * @param screen    pointer to screen for trigger-function 
+     * @param screen    pointer to level for trigger-function 
      * @return true     particle is alive 
      * @return false    particle is dead 
      */
-    bool update(float delta, LevelScreen *screen);
+    bool update(float delta, Level *screen);
     /**
      * @brief draw particle
      * 
      * @param delta     delta time [s]
+     * @param screen    screen for coordinate transformation
      */
-    void draw(float delta);
+    void draw(float delta, LevelScreen *screen);
     /**
      * @brief check if particle is alive
      * 

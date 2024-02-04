@@ -15,7 +15,7 @@ std::string Particle::str()
     return sstr.str();
 }
 
-bool Particle::update(float delta, LevelScreen *screen)
+bool Particle::update(float delta, Level *level)
 {
     if ( this && this->alive )
     {
@@ -25,14 +25,13 @@ bool Particle::update(float delta, LevelScreen *screen)
         this->pos.width = 1.0;
         this->pos.height = 1.0;
 
-        this->sprite->screenBounds = LevelScreen::WorldToScreen(screen, this->pos);
 
 
         if ( this->alive && this->lifetime < delta )
         {
             if ( trigger )
             {
-                this->trigger(this, screen);
+                this->trigger(this, level);
             }
             this->alive = false;
         }
@@ -42,8 +41,9 @@ bool Particle::update(float delta, LevelScreen *screen)
     else return false;
 }
 
-void Particle::draw(float delta)
+void Particle::draw(float delta, LevelScreen *screen)
 {
+    this->sprite->screenBounds = LevelScreen::WorldToScreen(screen, this->pos);
     this->sprite->draw(delta);
 }
 

@@ -114,13 +114,13 @@ void InfoScreen::setScale(float scale)
     this->scaleText = scaleStr.str();
 }
 
-void LevelScreen::loadSounds()
+void Level::loadSounds()
 {
     this->fireBreath = Datastore::getInstance().getSound("audio/Firebreath_Level_1.mp3");
 
 }
 
-void LevelScreen::loadLevel()
+void Level::loadLevel(LevelScreen *screen)
 {
     /// hard-coded level-name
     Image levelImageData = LoadImage("images/testLevel.png");
@@ -133,7 +133,7 @@ void LevelScreen::loadLevel()
      
     const unsigned int tilesX = this->levelSize.x;
     const unsigned int tilesY = this->levelSize.y;
-    this->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
+    screen->tiles = TileMap(Datastore::getInstance().getTexture("images/tileMap.png"),{16.0f,16.0f},{4.0f,4.0f});
     this->distanceMaps[DistanceMapType::PLAYER_DISTANCE].resize(tilesX,std::vector<int>(tilesY));
     float tileScaleFactor = 1.0;
     
@@ -175,17 +175,17 @@ void LevelScreen::loadLevel()
             /// TILES:
             Vector2 defaultTile = {(float)(x%1),0};//(float)(y%2)};
             /// source rectangle in source-px-coordinates
-            this->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
-                defaultTile.x * this->tiles.tileSize.x,
-                defaultTile.y * this->tiles.tileSize.y,
-                this->tiles.tileSize.x,
-                this->tiles.tileSize.y},
+            screen->tiles.coords.push_back((std::pair<Rectangle, Rectangle>){{
+                defaultTile.x * screen->tiles.tileSize.x,
+                defaultTile.y * screen->tiles.tileSize.y,
+                screen->tiles.tileSize.x,
+                screen->tiles.tileSize.y},
             /// target rectangle in target-px-coordinates (scaled)
             {
-                x * this->tiles.tileSize.x * tileScaleFactor,
-                y * this->tiles.tileSize.y * tileScaleFactor,
-                this->tiles.tileSize.x * tileScaleFactor,
-                this->tiles.tileSize.y * tileScaleFactor}});
+                x * screen->tiles.tileSize.x * tileScaleFactor,
+                y * screen->tiles.tileSize.y * tileScaleFactor,
+                screen->tiles.tileSize.x * tileScaleFactor,
+                screen->tiles.tileSize.y * tileScaleFactor}});
         }
     }
     UnloadImage(levelImageData);
@@ -217,7 +217,7 @@ void LevelScreen::loadLevel()
     }
 }
 
-void LevelScreen::addCharacter(CharacterType charType, int x, int y)
+void Level::addCharacter(CharacterType charType, int x, int y)
 {
     std::cerr << __func__ << "(" << (int)charType << ", " << x << ", " << y << ")\n";
     if ( charType == CharacterType::PLAYER )
@@ -227,7 +227,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         this->charAcc = 50.0;
 
         Rectangle playerWorldBounds{x,y,2,2};
-        Rectangle playerScreenBounds = LevelScreen::WorldToScreen(this, playerWorldBounds);
+        Rectangle playerScreenBounds = LevelScreen::WorldToScreen(screen, playerWorldBounds);
         playerScreenBounds.width = 32;
         playerScreenBounds.height = 32;
         WorldObjectStatus initialPlayerStats = {10,1000,2};
@@ -246,8 +246,8 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
         playerAnimations[CharacterState::CHAR_ATTACK_N].triggers[0] = playFireBreath;
         playerAnimations[CharacterState::CHAR_ATTACK_S].triggers[0] = playFireBreath;
         /// NOTE: how is this possible ... 
-        auto setGameover = [&](LevelScreen *s) { s->forceGameover(); };
-        playerAnimations[CharacterState::CHAR_DIE].triggers[playerAnimationDie.frames.size()-1] = [&](){ setGameover(this); };
+        //auto setGameover = [&](LevelScreen *s) { s->forceGameover(); };
+        //playerAnimations[CharacterState::CHAR_DIE].triggers[playerAnimationDie.frames.size()-1] = [&](){ setGameover(this); };
         this->player = new Character("player", CharacterState::CHAR_IDLE,
             initialPlayerStats,
             playerWorldBounds,
@@ -288,7 +288,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
             CharacterState::CHAR_WALK_W};
         npcWorldBounds.x = x;
         npcWorldBounds.y = y;
-        npcScreenBounds = LevelScreen::WorldToScreen(this, npcWorldBounds);
+        npcScreenBounds = LevelScreen::WorldToScreen(screen, npcWorldBounds);
         npcTextureBounds.y = GetRandomValue(1,3) * 16;
         CharacterState npcState = CharacterState::CHAR_IDLE;
         Character *npc = 
@@ -386,7 +386,7 @@ void LevelScreen::addCharacter(CharacterType charType, int x, int y)
     }
 }
 
-void LevelScreen::addObject(ObjectType objType, int x, int y)
+void Level::addObject(ObjectType objType, int x, int y)
 {
     std::cerr << __func__ << "(" << (int)objType << ", " << x << ", " << y << ")\n";
     Rectangle objectWorldBounds;
@@ -419,7 +419,7 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
             }}}};
     objectWorldBounds.x = x;
     objectWorldBounds.y = y;
-    objectScreenBounds = LevelScreen::WorldToScreen(this, objectWorldBounds);
+    objectScreenBounds = LevelScreen::WorldToScreen(screen, objectWorldBounds);
     switch ( objType )
     {
         case ObjectType::HOUSE:
@@ -461,7 +461,7 @@ void LevelScreen::addObject(ObjectType objType, int x, int y)
     this->drawableObjects.push_back(obj);
 }
 
-void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
+void Level::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
 {
     if ( nullptr == this->player )
     {
@@ -481,7 +481,7 @@ void LevelScreen::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2
 
 void LevelScreen::loadUI()
 {
-    this->ui = new UI({0,0}, 2.0, &this->player->stats);
+    this->ui = new UI({0,0}, 2.0, &this->level.player->stats);
 }
 
 void LevelScreen::initialize()
@@ -496,7 +496,7 @@ void LevelScreen::initialize()
 
     this->infoScreen = new InfoScreen({400,10});
 
-    loadLevel();
+    level.loadLevel(this);
 
     loadUI();
 
@@ -517,7 +517,7 @@ void LevelScreen::exit()
     DebugStats::getInstance().printStats();
 }
 
-void LevelScreen::movePlayer(float delta)
+void Level::movePlayer(float delta)
 {
     Vector2 spdDelta = {0.0f,0.0f};
     if ( IsKeyDown(KEY_W) ) // move up
@@ -600,7 +600,7 @@ void LevelScreen::movePlayer(float delta)
     GridPos newPlayerGridPos = {
         this->player->worldBounds.x,
         this->player->worldBounds.y };
-    Vector2 screenPos = LevelScreen::WorldToScreenPos(this,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
+    Vector2 screenPos = LevelScreen::WorldToScreenPos(screen,(Vector2){this->player->worldBounds.x, this->player->worldBounds.y});
     this->player->screenBounds.x = screenPos.x;
     this->player->screenBounds.y = screenPos.y;
     this->player->sprite->screenBounds = this->player->screenBounds;
@@ -655,7 +655,7 @@ void LevelScreen::movePlayer(float delta)
     }
 }
 
-void LevelScreen::applyDmgPattern(float baseDmg, GridPos center, std::vector<GridPos> *attackPattern, bool addParticles )
+void Level::applyDmgPattern(float baseDmg, GridPos center, std::vector<GridPos> *attackPattern, bool addParticles )
 {
     float dmg = baseDmg / attackPattern->size();
     for ( GridPos pos : *attackPattern )
@@ -687,13 +687,13 @@ void LevelScreen::applyDmgPattern(float baseDmg, GridPos center, std::vector<Gri
                         {0.2, {80.0,0.0,16.0,16.0}}
                     }}}}),
                     {center.x + 0.5 * pos.x, center.y + 0.5 * pos.y},
-                    {pos.x*2.0f, pos.y*2.0f}, 1.0, 0, [](Particle *notUsed,LevelScreen *alsoNotUsed) { /* do nothing*/; return false; }));
+                    {pos.x*2.0f, pos.y*2.0f}, 1.0, 0, [](Particle *notUsed,Level *alsoNotUsed) { /* do nothing*/; return false; }));
             }
         }
     }
 }
 
-void LevelScreen::launchProjectile(float dmg,
+void Level::launchProjectile(float dmg,
                                     Rectangle start,
                                     Vector2 dir,
                                     float lifetime,
@@ -706,14 +706,14 @@ void LevelScreen::launchProjectile(float dmg,
         dir,
         lifetime,
         dmg,
-        [&](Particle *particle, LevelScreen *level) {
+        [&](Particle *particle, Level *level) {
             float dmg = particle->dmg;
             GridPos targetPos =  {particle->pos.x, particle->pos.y};
             level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
             /* do nothing*/; return false; } ));
 }
 
-void LevelScreen::performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern)
+void Level::performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern)
 {
     if ( directedAttackPattern.size() == 0 )
     {
@@ -730,7 +730,7 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
     }
     GridPos center = {source->worldBounds.x + 0.5f, source->worldBounds.y + 0.5};
     float baseDmg = source->stats.AP * delta;
-    Rectangle worldBounds = LevelScreen::WorldToScreen(this, source->worldBounds);
+    Rectangle worldBounds = LevelScreen::WorldToScreen(screen, source->worldBounds);
     applyDmgPattern(baseDmg, center, &directedAttackPattern, true); 
     source->stats.EP -= fabs(baseDmg);
     if ( delta < 0 )
@@ -740,7 +740,7 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
             // texture bounds
             {0.0,16.0,16.0,16.0},
             // screen bounds
-            LevelScreen::WorldToScreen(this, source->worldBounds),
+            LevelScreen::WorldToScreen(screen, source->worldBounds),
             Datastore::getInstance().getTexture("images/ui.png"),
             {{CharacterState::CHAR_IDLE,
             (Animation){-1, {},
@@ -754,7 +754,7 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
             {center.x, center.y},
             {directedAttackPattern[0].x*7, directedAttackPattern[0].y*7},
             1.0, 100,
-            [](Particle *notUsed, LevelScreen *level) {
+            [](Particle *notUsed, Level *level) {
                 GridPos targetPos =  {notUsed->pos.x, notUsed->pos.y};
                 float dmg = 100.0;
                 level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
@@ -764,7 +764,7 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
     }
 }
 
-void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax)
+void Level::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax)
 {
     /// reset
     if ( clean )
@@ -826,7 +826,7 @@ void LevelScreen::updateDistanceMap(DistanceMapType type, GridPos pos, bool clea
     }
 }
 
-bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
+bool Level::checkCollision(Character *source, Rectangle worldBounds)
 {
     /// TODO HELL NO THIS IS SLOW - USE A QUADTREE OR SOMETHING; BUT NOT THIS WAAAAAAAAH
     /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
@@ -840,7 +840,7 @@ bool LevelScreen::checkCollision(Character *source, Rectangle worldBounds)
     return false;
 }
 
-Character* LevelScreen::getCollision(Character *source, Rectangle worldBounds)
+Character* Level::getCollision(Character *source, Rectangle worldBounds)
 {
     /// TODO HELL NO THIS IS SLOW - USE A QUADTREE OR SOMETHING; BUT NOT THIS WAAAAAAAAH
     /// this is complexity O(n^2) ... there is a solution to do this in worst case O(nlogn)
@@ -854,7 +854,23 @@ Character* LevelScreen::getCollision(Character *source, Rectangle worldBounds)
     return nullptr;
 }
 
-void LevelScreen::moveNPCs(float delta)
+void Level::update(float delta)
+{
+    updateObjects(delta);
+    updateNPCs(delta);
+    updateParticles(delta);
+
+    // move
+    movePlayer(delta);
+    moveNPCs(delta);
+}
+
+bool Level::isReady()
+{
+    return IsTextureReady(this->npcTexture) && IsTextureReady(this->objectTexture);
+}
+
+void Level::moveNPCs(float delta)
 {
     float charSpeed = 2.0;
     for ( Character *npc : this->characters )
@@ -886,7 +902,7 @@ void LevelScreen::moveNPCs(float delta)
             if ( not this->checkCollision(npc, tempBounds) )
             {
                 npc->worldBounds = tempBounds;
-                npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
+                npc->screenBounds = LevelScreen::WorldToScreen(screen, tempBounds);
                 npc->sprite->screenBounds = npc->screenBounds;
                 TraceLog(LOG_DEBUG,"%s(%s) by {%.0f,%.0f} to screenPos {%.0f,%.0f}",
                     __func__, npc->name, deltaPos.x, deltaPos.y, npc->screenBounds.x, npc->screenBounds.y);
@@ -895,7 +911,7 @@ void LevelScreen::moveNPCs(float delta)
             if ( not this->checkCollision(npc, tempBounds) )
             {
                 npc->worldBounds = tempBounds;
-                npc->screenBounds = LevelScreen::WorldToScreen(this, tempBounds);
+                npc->screenBounds = LevelScreen::WorldToScreen(screen, tempBounds);
                 npc->sprite->screenBounds = npc->screenBounds;
                 TraceLog(LOG_DEBUG,"%s(%s) by {%.0f,%.0f} to screenPos {%.0f,%.0f}",
                     __func__, npc->name, deltaPos.x, deltaPos.y, npc->screenBounds.x, npc->screenBounds.y);
@@ -905,7 +921,7 @@ void LevelScreen::moveNPCs(float delta)
 
 }
 
-void LevelScreen::updateNPCs(float delta)
+void Level::updateNPCs(float delta)
 {
     for ( Character *npc : this->characters )
     {
@@ -916,7 +932,7 @@ void LevelScreen::updateNPCs(float delta)
     }
 }
 
-void LevelScreen::updateObjects(float delta)
+void Level::updateObjects(float delta)
 {
     std::vector<GridPos> deleteList;
     for ( auto tmp : this->objects )
@@ -958,7 +974,7 @@ void LevelScreen::updateObjects(float delta)
     }
 }
 
-void LevelScreen::updateParticles(float delta)
+void Level::updateParticles(float delta)
 {
     std::vector<Particle*> keepParticles;
     std::vector<Particle*> deleteParticles;
@@ -982,7 +998,7 @@ void LevelScreen::updateParticles(float delta)
     }
 }
 
-void LevelScreen::checkWinCondition()
+void Level::checkWinCondition()
 {
     if ( player->stats.HP > 0 )
     {
@@ -1011,6 +1027,7 @@ void LevelScreen::checkWinCondition()
 
 void LevelScreen::handleInput(float delta)
 {
+    #if WAITING_FOR_REFACTORING
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
     {
         if( CheckCollisionPointRec(GetMousePosition(), this->player->sprite->screenBounds) )
@@ -1128,33 +1145,28 @@ void LevelScreen::handleInput(float delta)
             obj->sprite->screenBounds = obj->screenBounds;
         }
     }
+    #endif
 
 }
 
 void LevelScreen::update(float delta)
 {
-    if ( !IsTextureReady(this->npcTexture) || !IsTextureReady(this->objectTexture) )
+    if ( not level.isReady() )
     {
         return;
     }
     TRACE;
     // check end of game
-    checkWinCondition();
+    level.checkWinCondition();
 
     // update object states
     handleInput(delta);
-    updateObjects(delta);
-    updateNPCs(delta);
-    updateParticles(delta);
-
-    // move
-    movePlayer(delta);
-    moveNPCs(delta);
+    this->level.update(delta);
 
     // draw
     this->draw(delta);
 }
-void LevelScreen::sortDrawableObjects()
+void Level::sortDrawableObjects()
 {
     // sort by y-value
     std::sort(this->drawableObjects.begin(), this->drawableObjects.end(),
@@ -1164,12 +1176,34 @@ void LevelScreen::sortDrawableObjects()
     );
 }
 
+void Level::draw(float delta, LevelScreen *screen)
+{
+    sortDrawableObjects();
+
+    for ( Character *object : this->drawableObjects )
+    {
+        if ( object->sprite && object->stats.HP > 0 )
+        {
+            object->sprite->draw(delta);
+        }
+    }
+
+    for (Particle *particle : this->particles)
+    {
+        if ( particle->isAlive() )
+        {
+            particle->draw(delta, screen);
+        }
+    }
+}
+
 void LevelScreen::draw(float delta)
 {
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);
 
+#if WAITING_FOR_REFACTORING
         //int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);
         /// start debug
@@ -1189,24 +1223,10 @@ void LevelScreen::draw(float delta)
                 }
             }
         }
-        
-        sortDrawableObjects();
+#endif        
 
-        for ( Character *object : this->drawableObjects )
-        {
-            if ( object->sprite && object->stats.HP > 0 )
-            {
-                object->sprite->draw(delta);
-            }
-        }
 
-        for (Particle *particle : this->particles)
-        {
-            if ( particle->isAlive() )
-            {
-                particle->draw(delta);
-            }
-        }
+        this->level.draw(delta, this);
 
         this->ui->draw(delta);
 

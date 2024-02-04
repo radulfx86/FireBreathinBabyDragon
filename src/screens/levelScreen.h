@@ -72,13 +72,86 @@ private:
     std::string distanceMapText;
     DistanceMapType selectedDebugDistanceMap;
 };
+/// forward declaration for Level
+class LevelScreen;
+class Level
+{
+    public:
+    /// @todo remove link to screen, if possible
+    Level(LevelScreen *screen) :
+        screen(screen),
+        lastPlayerGridPos({0,0}),
+        isDone(false),
+        isGameOver(false) {}
+    bool inBounds(GridPos p)
+    {
+        return p.x >= 0 && p.y >= 0 && p.x < this->levelSize.x && p.y < this->levelSize.y;
+    }
+    void draw(float delta, LevelScreen *screen);
+    Vector2 levelSize;
+    Sound fireBreath;
+    Vector2 charSpeed;
+    float charSpeedMax;
+    float charAcc;
+    std::vector<Character*> characters;
+    /// TBD: is there no way to actually use the tileMap for this?
+    std::map<GridPos,Character*> objects;
+    std::vector<Character*> drawableObjects;
+    std::vector<Particle*> particles;
+    std::vector<Particle*> nextParticles;
+    /// this is ugly
+    GridPos lastPlayerGridPos;
+    Character *player;
+    void addObject(ObjectType objType, int x, int y);
+    void addCharacter(CharacterType charType, int x, int y);
+    void loadSounds();
+    void updateNPCs(float delta);
+    void updateParticles(float delta);
+    Texture2D objectTexture, npcTexture;
+    /// distance maps - mapped per distance-type
+    MappedDistanceMaps distanceMaps;
+    void performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern);
+    void applyDmgPattern(float baseDmg, GridPos pos, std::vector<GridPos> *attackPattern, bool addParticles );
+    void launchProjectile(float dmg,
+                        Rectangle start,
+                        Vector2 dir,
+                        float lifetime,
+                        std::vector<GridPos> *dmgPattern,
+                        AnimatedSprite *animation);
+    void updateObjects(float delta);
+    bool checkCollision(Character *source, Rectangle worldBounds);
+    Character* getCollision(Character *source, Rectangle worldBounds);
+    void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
+    void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax);
+
+
+    void movePlayer(float delta); ///< extract input-stuff 
+    void moveNPCs(float delta); ///< merge with updateNPCs
+
+    void sortDrawableObjects();
+    void update(float delta);
+    bool isReady();
+    void checkWinCondition();
+    bool isDone;
+    bool isGameOver;
+    /// stuff to be moved somewhere entirely else
+    void loadLevel(LevelScreen *screen);   ///< move to level loader class
+private:
+    LevelScreen *screen;
+    int winThreshold;
+};
 
 /// level screen - absolutely bloated monster of game and screen combination @todo split/refactor!!!!
 class LevelScreen : public GameScreen, public GameState
 {
 public:
-    LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE), lastPlayerGridPos({0,0})
-     {}
+    LevelScreen(Game *game) :
+        GameScreen(game),
+        scale(1),
+        offset({0,0}),
+        selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE),
+        level(this)
+     {std::cerr << __func__ << " this=" << static_cast<const void*>(this) << "\n";}
     virtual void initialize() override;
 
     virtual void draw(float delta) override;
@@ -96,7 +169,7 @@ public:
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
         {
-            return me->isDone;
+            return me->level.isDone;
         }
         return false;
     }
@@ -105,7 +178,7 @@ public:
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
         {
-            return me->isGameOver;
+            return me->level.isGameOver;
         }
         return false;
     }
@@ -182,76 +255,24 @@ public:
             return {0,0};
         }
     }
-    void forceGameover()
-    {
-        this->isGameOver = true;
-    }
-    bool inBounds(GridPos p)
-    {
-        return p.x >= 0 && p.y >= 0 && p.x < this->levelSize.x && p.y < this->levelSize.y;
-    }
+    TileMap tiles; ///< move to Level?
 private:
+    Level level;
     /// TODO total mess below, CLEAN UP @Radulf
-    Vector2 charSpeed;
-    float charSpeedMax;
-    float charAcc;
-    int winThreshold;
-    Sound fireBreath;
-    bool isDone;
-    bool isGameOver;
+    DistanceMapType selectedDebugDistanceMap;
+    /// stuff to go in level
+    /// stuff that can remain in screen
+    void loadUI();
+    UI *ui;
     float scale;
+    InfoScreen *infoScreen;
     /// offset - in world-coordinates for now
     Vector2 offset;
-    //Vector2 tileSize;
-    TileMap tiles;
-    InfoScreen *infoScreen;
-    void loadLevel();
-    void addCharacter(CharacterType charType, int x, int y);
-    void addObject(ObjectType objType, int x, int y);
-    void loadSounds();
-    void loadUI();
-    void handleInput(float delta);
-    void movePlayer(float delta);
-    void moveNPCs(float delta);
-    void updateNPCs(float delta);
-    void updateParticles(float delta);
+
+
+    void handleInput(float delta); ///< insert all input stuff here
     /// TODO merge with updateNPCs
-    void updateObjects(float delta);
-    bool checkCollision(Character *source, Rectangle worldBounds);
-    Character* getCollision(Character *source, Rectangle worldBounds);
-    void updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos);
-    void updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax);
-    void sortDrawableObjects();
-    void checkWinCondition();
-    void performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern);
-    void applyDmgPattern(float baseDmg, GridPos pos, std::vector<GridPos> *attackPattern, bool addParticles );
-    void launchProjectile(float dmg,
-                        Rectangle start,
-                        Vector2 dir,
-                        float lifetime,
-                        std::vector<GridPos> *dmgPattern,
-                        AnimatedSprite *animation);
     Camera2D camera;
-    Vector2 levelSize;
-
-    std::vector<Character*> characters;
-    /// TBD: is there no way to actually use the tileMap for this?
-    std::map<GridPos,Character*> objects;
-    std::vector<Character*> drawableObjects;
-    std::vector<Particle*> particles;
-    std::vector<Particle*> nextParticles;
-    /// this is ugly
-    GridPos lastPlayerGridPos;
-    Character *player;
-
-    UI *ui;
-
-    Texture2D objectTexture, npcTexture;
-
-    /// distance maps - mapped per distance-type
-    MappedDistanceMaps distanceMaps;
-    
-    DistanceMapType selectedDebugDistanceMap;
 
 };
 

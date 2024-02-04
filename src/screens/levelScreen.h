@@ -7,19 +7,24 @@
 #define MAX_LEVEL_SIZE_X 1000u
 #define MAX_LEVEL_SIZE_Y 1000u
 
+/// position in 2D Grid
 using GridPos = struct {int x; int y;};
+/// less-operator for GridPos
 bool operator<(const GridPos &a, const GridPos &b)
 {
     return (a.x + MAX_LEVEL_SIZE_X * a.y) < (b.x + MAX_LEVEL_SIZE_X * b.y);
 }
+/// equals operator for GridPos
 bool operator==(const GridPos &a, const GridPos &b)
 {
     return (a.x + MAX_LEVEL_SIZE_X * a.y) == (b.x + MAX_LEVEL_SIZE_X * b.y);
 }
+/// inequality operator for GridPos
 bool operator!=(const GridPos &a, const GridPos &b)
 {
     return !(a==b);
 }
+/// sum operator for GridPos
 GridPos operator+(const GridPos &a, const GridPos &b)
 {
     return (GridPos){a.x+b.x, a.y+b.y};
@@ -27,7 +32,7 @@ GridPos operator+(const GridPos &a, const GridPos &b)
 /// pattern where to apply damage to
 using AttackPattern = std::map<Direction,std::vector<GridPos>>;
 
-
+/// object types
 using ObjectType = enum {
     HOUSE = 0,
     TREE = 1,
@@ -35,6 +40,7 @@ using ObjectType = enum {
     WALL = 3
 };
 
+/// character types
 using CharacterType = enum {
     PLAYER = 0,
     VILLAGER = 1,
@@ -43,32 +49,35 @@ using CharacterType = enum {
     HERO = 4
 };
 
-/// info screen
+/// info screen, collect and display various information on current screen
 class InfoScreen
 {
 public:
+    /// @brief info screen constructor
+    /// @param origin   origin of infoscreen overlay in screen coordinates 
     InfoScreen(Vector2 origin) : origin(origin), sumDelta(0), frameCnt(0), numTiles(0) {}
+    /// draw screen
     void draw(float delta);
-    std::string scaleText;
     void setNumTiles(int numTiles);
     void setActiveDistanceMap(DistanceMapType selectedDebugDistanceMap);
+    void setScale(float scale);
 private:
     Vector2 origin;
     float sumDelta;
     unsigned int frameCnt;
     std::string fpsText;
     std::string tileText;
+    std::string scaleText;
     int numTiles;
     std::string distanceMapText;
     DistanceMapType selectedDebugDistanceMap;
 };
 
-/// level screen
+/// level screen - absolutely bloated monster of game and screen combination @todo split/refactor!!!!
 class LevelScreen : public GameScreen, public GameState
 {
 public:
     LevelScreen(Game *game) : GameScreen(game), isDone(false), isGameOver(false), scale(1), offset({0,0}), selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE), lastPlayerGridPos({0,0})
-    //, tileSize({16,16})
      {}
     virtual void initialize() override;
 
@@ -82,6 +91,7 @@ public:
 
     virtual void update(float delta) override;
 
+    /// static check win condition
     static bool checkWin(GameState *caller)
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
@@ -90,6 +100,7 @@ public:
         }
         return false;
     }
+    /// static check gameover condition
     static bool checkGameover(GameState *caller)
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )

@@ -9,7 +9,6 @@
 #include <execution>
 #include <queue>
 #include <cstring>
-static int tick = 0;
 
 void playFireBreath()
 {
@@ -106,6 +105,13 @@ void InfoScreen::setNumTiles(int numTiles)
         tileStr << "#tiles: " << numTiles;
         this->tileText.assign(tileStr.str());
     }
+}
+
+void InfoScreen::setScale(float scale)
+{
+    std::stringstream scaleStr;
+    scaleStr << "scale: " << scale;
+    this->scaleText = scaleStr.str();
 }
 
 void LevelScreen::loadSounds()
@@ -1101,9 +1107,7 @@ void LevelScreen::handleInput(float delta)
         Vector2 mousePos = GetMousePosition();
         /// TODO find a way to zoom into the mouse position ... too tired for this now
         this->camera.zoom = this->scale;
-        std::stringstream scaleStr;
-        scaleStr << "scale: " << this->scale;
-        this->infoScreen->scaleText = scaleStr.str();
+        this->infoScreen->setScale(this->scale);
         needsUpdate = true;
     }
     // since zoom does not work:
@@ -1134,19 +1138,20 @@ void LevelScreen::update(float delta)
         return;
     }
     TRACE;
-    handleInput(delta);
-   
+    // check end of game
     checkWinCondition();
 
+    // update object states
+    handleInput(delta);
     updateObjects(delta);
     updateNPCs(delta);
     updateParticles(delta);
 
+    // move
     movePlayer(delta);
     moveNPCs(delta);
 
-    /// TODO z-sort characters and objects !!!
-
+    // draw
     this->draw(delta);
 }
 void LevelScreen::sortDrawableObjects()
@@ -1161,7 +1166,6 @@ void LevelScreen::sortDrawableObjects()
 
 void LevelScreen::draw(float delta)
 {
-    ++tick;
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);

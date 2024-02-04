@@ -9,6 +9,7 @@
 #include <execution>
 #include <queue>
 #include <cstring>
+static int tick = 0;
 
 void playFireBreath()
 {
@@ -56,6 +57,20 @@ AttackPattern villagerAttackPattern = {
 { Direction::DIR_W, {{-1, 0}, {-1, 1}, {-1, -1}}},
 { Direction::DIR_N, {{0, -1}, {1, -1}, {-1, -1}}},
 { Direction::DIR_S, {{0, 1}, {1, 1}, {-1, 1}}},
+};
+
+/**
+ * @brief "explosion" pattern
+ *     x
+ *   x x x
+ * x x i x x
+ *   x x x
+ *     x
+ */
+std::vector<GridPos> explosionPattern = {
+    {1,0}, {0,1}, {-1,0}, {0, -1},
+    {1,1}, {-1,-1}, {-1,1}, {1, -1},
+    {2,0}, {0,2}, {-2,0}, {0, -2}
 };
 
 void InfoScreen::draw(float delta)
@@ -633,9 +648,72 @@ void LevelScreen::movePlayer(float delta)
             200);
     }
 }
+
+void LevelScreen::applyDmgPattern(float baseDmg, GridPos center, std::vector<GridPos> *attackPattern, bool addParticles )
+{
+    float dmg = baseDmg / attackPattern->size();
+    for ( GridPos pos : *attackPattern )
+    {
+        GridPos tmp = center + pos;
+        if ( inBounds(tmp) )
+        {
+            // damage
+            if ( this->objects.count(tmp) )
+            {
+                this->objects[tmp]->stats.HP -= dmg;
+            }
+            // just fancy effects, no dmg
+            if ( addParticles )
+            {
+                this->nextParticles.push_back(new Particle(new AnimatedSprite(
+                    // texture bounds
+                    {0.0,16.0,16.0,16.0},
+                    // screen bounds
+                    {tmp.x, tmp.y, 1, 1},
+                    Datastore::getInstance().getTexture("images/ui.png"),
+                    {{CharacterState::CHAR_IDLE,
+                    (Animation){-1, {},
+                    {   {0.2, {0.0,0.0,16.0,16.0}},
+                        {0.2, {16.0,0.0,16.0,16.0}},
+                        {0.2, {32.0,0.0,16.0,16.0}},
+                        {0.2, {48.0,0.0,16.0,16.0}},
+                        {0.2, {64.0,0.0,16.0,16.0}},
+                        {0.2, {80.0,0.0,16.0,16.0}}
+                    }}}}),
+                    {center.x + 0.5 * pos.x, center.y + 0.5 * pos.y},
+                    {pos.x*2.0f, pos.y*2.0f}, 1.0, 0, [](Particle *notUsed,LevelScreen *alsoNotUsed) { /* do nothing*/; return false; }));
+            }
+        }
+    }
+}
+
+void LevelScreen::launchProjectile(float dmg,
+                                    Rectangle start,
+                                    Vector2 dir,
+                                    float lifetime,
+                                    std::vector<GridPos> *dmgPattern,
+                                    AnimatedSprite *animation)
+{
+    /// exploding projectile
+    this->nextParticles.push_back(new Particle(animation,
+        start,
+        dir,
+        lifetime,
+        dmg,
+        [&](Particle *particle, LevelScreen *level) {
+            float dmg = particle->dmg;
+            GridPos targetPos =  {particle->pos.x, particle->pos.y};
+            level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
+            /* do nothing*/; return false; } ));
+}
+
 void LevelScreen::performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern)
 {
     if ( directedAttackPattern.size() == 0 )
+    {
+        return;
+    }
+    if ( nullptr == source )
     {
         return;
     }
@@ -643,36 +721,40 @@ void LevelScreen::performAttack(Character *source, float delta, std::vector<Grid
     {
         source->stats.EP = 0.0;
         return;   
-    }    
+    }
     GridPos center = {source->worldBounds.x + 0.5f, source->worldBounds.y + 0.5};
     float baseDmg = source->stats.AP * delta;
-    float dmg = baseDmg / directedAttackPattern.size();
-    for ( GridPos pos : directedAttackPattern )
+    Rectangle worldBounds = LevelScreen::WorldToScreen(this, source->worldBounds);
+    applyDmgPattern(baseDmg, center, &directedAttackPattern, true); 
+    source->stats.EP -= fabs(baseDmg);
+    if ( delta < 0 )
     {
-        GridPos tmp = center + pos;
-        if ( inBounds(tmp) && this->objects.count(tmp) )
-        {
-            this->particles.push_back(new Particle(new AnimatedSprite(
-                // texture bounds
-                {0.0,16.0,16.0,16.0},
-                // screen bounds
-                LevelScreen::WorldToScreen(this, source->worldBounds),
-                Datastore::getInstance().getTexture("images/ui.png"),
-                {{CharacterState::CHAR_IDLE,
-                (Animation){-1, {},
-                {   {0.2, {0.0,0.0,16.0,16.0}},
-                    {0.2, {16.0,0.0,16.0,16.0}},
-                    {0.2, {32.0,0.0,16.0,16.0}},
-                    {0.2, {48.0,0.0,16.0,16.0}},
-                    {0.2, {64.0,0.0,16.0,16.0}},
-                    {0.2, {80.0,0.0,16.0,16.0}}
-                }}}}),
-                {tmp.x, tmp.y},
-                {pos.x, pos.y}, 2.0, [](Particle *notUsed) { /* do nothing*/; return false; }));
-            this->objects[tmp]->stats.HP -= dmg;
-            // remove absolute amount of dmg (villagers/healers do negative dmg)
-            source->stats.EP -= fabs(dmg);
-        }
+        /// exploding projectile
+        this->nextParticles.push_back(new Particle(new AnimatedSprite(
+            // texture bounds
+            {0.0,16.0,16.0,16.0},
+            // screen bounds
+            LevelScreen::WorldToScreen(this, source->worldBounds),
+            Datastore::getInstance().getTexture("images/ui.png"),
+            {{CharacterState::CHAR_IDLE,
+            (Animation){-1, {},
+            {   {0.2, {0.0,16.0,16.0,16.0}},
+                {0.2, {16.0,16.0,16.0,16.0}},
+                {0.2, {32.0,16.0,16.0,16.0}},
+                {0.2, {48.0,16.0,16.0,16.0}},
+                {0.2, {64.0,16.0,16.0,16.0}},
+                {0.2, {80.0,16.0,16.0,16.0}}
+            }}}}),
+            {center.x, center.y},
+            {directedAttackPattern[0].x*7, directedAttackPattern[0].y*7},
+            1.0, 100,
+            [](Particle *notUsed, LevelScreen *level) {
+                GridPos targetPos =  {notUsed->pos.x, notUsed->pos.y};
+                float dmg = 100.0;
+                level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
+                //level->applyDmgPattern(dmg, targetPos, {{0,0},{1,0},{0,1},{-1,0},{0,-1}}, true);
+
+                /* do nothing*/; return false; } ));
     }
 }
 
@@ -872,17 +954,26 @@ void LevelScreen::updateObjects(float delta)
 
 void LevelScreen::updateParticles(float delta)
 {
-    std::vector<Particle *> newParticles;
-    for ( Particle *particle : this->particles )
+    std::vector<Particle*> keepParticles;
+    std::vector<Particle*> deleteParticles;
+    for ( Particle *p : this->particles )
     {
-        if ( particle->update(delta, this) )
+        if ( p->update(delta, this) )
         {
-            newParticles.push_back(particle);
+            keepParticles.push_back(p);
+        }
+        else
+        {
+            deleteParticles.push_back(p);
         }
     }
-    std::cerr << "updated " << this->particles.size() << " surviving: " << newParticles.size() << "\n";
-    this->particles.swap(newParticles);
-
+    this->particles = keepParticles;
+    this->particles.insert(this->particles.end(), this->nextParticles.begin(), this->nextParticles.end());
+    this->nextParticles.clear();
+    for ( Particle *p : deleteParticles )
+    {
+        delete p;
+    }
 }
 
 void LevelScreen::checkWinCondition()
@@ -912,13 +1003,8 @@ void LevelScreen::checkWinCondition()
     }
 }
 
-void LevelScreen::update(float delta)
+void LevelScreen::handleInput(float delta)
 {
-    if ( !IsTextureReady(this->npcTexture) || !IsTextureReady(this->objectTexture) )
-    {
-        return;
-    }
-    TRACE;
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
     {
         if( CheckCollisionPointRec(GetMousePosition(), this->player->sprite->screenBounds) )
@@ -965,6 +1051,47 @@ void LevelScreen::update(float delta)
     {
         isKeyQPressed = false;
     }
+    static bool isKeyEPressed = true;
+    if ( IsKeyDown(KEY_E) )
+    {
+        if ( !isKeyEPressed )
+        {
+            float dmg = 50.0;
+            if ( dmg > this->player->stats.EP )
+            {
+                dmg = this->player->stats.EP;
+            }
+            this->player->stats.EP -= dmg;
+            if ( dmg > 0 )
+            {
+                Vector2 target = LevelScreen::ScreenToWorld(this,GetMousePosition());
+                Vector2 dir = {target.x - player->worldBounds.x, target.y - player->worldBounds.y};
+                float len = sqrt(dir.x * dir.x + dir.y * dir.y)/2.0;
+                dir.x /= len;
+                dir.y /= len;
+                launchProjectile(dmg, player->worldBounds, dir, len, &explosionPattern, new AnimatedSprite(
+                    // texture bounds
+                    {0.0,16.0,16.0,16.0},
+                    // screen bounds
+                    LevelScreen::WorldToScreen(this, this->player->worldBounds),
+                    Datastore::getInstance().getTexture("images/ui.png"),
+                    {{CharacterState::CHAR_IDLE,
+                    (Animation){-1, {},
+                    {   {0.2, {0.0,16.0,16.0,16.0}},
+                        {0.2, {16.0,16.0,16.0,16.0}},
+                        {0.2, {32.0,16.0,16.0,16.0}},
+                        {0.2, {48.0,16.0,16.0,16.0}},
+                        {0.2, {64.0,16.0,16.0,16.0}},
+                        {0.2, {80.0,16.0,16.0,16.0}}
+                    }}}}));
+            }
+        }
+        isKeyEPressed = true;
+    }
+    else
+    {
+        isKeyEPressed = false;
+    }
     float zoomDelta = GetMouseWheelMove();
     bool needsUpdate = false;
     if ( zoomDelta != 0.0 )
@@ -998,6 +1125,17 @@ void LevelScreen::update(float delta)
         }
     }
 
+}
+
+void LevelScreen::update(float delta)
+{
+    if ( !IsTextureReady(this->npcTexture) || !IsTextureReady(this->objectTexture) )
+    {
+        return;
+    }
+    TRACE;
+    handleInput(delta);
+   
     checkWinCondition();
 
     updateObjects(delta);
@@ -1023,6 +1161,7 @@ void LevelScreen::sortDrawableObjects()
 
 void LevelScreen::draw(float delta)
 {
+    ++tick;
     TRACE;
     BeginDrawing();
         ClearBackground(GREEN);

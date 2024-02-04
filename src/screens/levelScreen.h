@@ -199,6 +199,7 @@ private:
     void addObject(ObjectType objType, int x, int y);
     void loadSounds();
     void loadUI();
+    void handleInput(float delta);
     void movePlayer(float delta);
     void moveNPCs(float delta);
     void updateNPCs(float delta);
@@ -212,6 +213,13 @@ private:
     void sortDrawableObjects();
     void checkWinCondition();
     void performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern);
+    void applyDmgPattern(float baseDmg, GridPos pos, std::vector<GridPos> *attackPattern, bool addParticles );
+    void launchProjectile(float dmg,
+                        Rectangle start,
+                        Vector2 dir,
+                        float lifetime,
+                        std::vector<GridPos> *dmgPattern,
+                        AnimatedSprite *animation);
     Camera2D camera;
     Vector2 levelSize;
 
@@ -220,6 +228,7 @@ private:
     std::map<GridPos,Character*> objects;
     std::vector<Character*> drawableObjects;
     std::vector<Particle*> particles;
+    std::vector<Particle*> nextParticles;
     /// this is ugly
     GridPos lastPlayerGridPos;
     Character *player;

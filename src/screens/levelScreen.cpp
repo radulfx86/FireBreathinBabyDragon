@@ -1027,7 +1027,7 @@ void Level::checkWinCondition()
 
 void LevelScreen::handleInput(float delta)
 {
-    #if WAITING_FOR_REFACTORING
+#if NOT_NECESSARY_REMOVE_LATER 
     if ( IsMouseButtonReleased(MOUSE_BUTTON_LEFT) )
     {
         if( CheckCollisionPointRec(GetMousePosition(), this->player->sprite->screenBounds) )
@@ -1074,29 +1074,30 @@ void LevelScreen::handleInput(float delta)
     {
         isKeyQPressed = false;
     }
+#endif
     static bool isKeyEPressed = true;
     if ( IsKeyDown(KEY_E) )
     {
         if ( !isKeyEPressed )
         {
             float dmg = 50.0;
-            if ( dmg > this->player->stats.EP )
+            if ( dmg > this->level.player->stats.EP )
             {
-                dmg = this->player->stats.EP;
+                dmg = this->level.player->stats.EP;
             }
-            this->player->stats.EP -= dmg;
+            this->level.player->stats.EP -= dmg;
             if ( dmg > 0 )
             {
                 Vector2 target = LevelScreen::ScreenToWorld(this,GetMousePosition());
-                Vector2 dir = {target.x - player->worldBounds.x, target.y - player->worldBounds.y};
+                Vector2 dir = {target.x - this->level.player->worldBounds.x, target.y - this->level.player->worldBounds.y};
                 float len = sqrt(dir.x * dir.x + dir.y * dir.y)/2.0;
                 dir.x /= len;
                 dir.y /= len;
-                launchProjectile(dmg, player->worldBounds, dir, len, &explosionPattern, new AnimatedSprite(
+                this->level.launchProjectile(dmg, this->level.player->worldBounds, dir, len, &explosionPattern, new AnimatedSprite(
                     // texture bounds
                     {0.0,16.0,16.0,16.0},
                     // screen bounds
-                    LevelScreen::WorldToScreen(this, this->player->worldBounds),
+                    LevelScreen::WorldToScreen(this, this->level.player->worldBounds),
                     Datastore::getInstance().getTexture("images/ui.png"),
                     {{CharacterState::CHAR_IDLE,
                     (Animation){-1, {},
@@ -1133,19 +1134,18 @@ void LevelScreen::handleInput(float delta)
     if ( needsUpdate )
     {
         this->tiles.updateCamera(this->camera);
-        for ( Character *character : this->characters )
+        for ( Character *character : this->level.characters )
         {
             character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
             character->sprite->screenBounds = character->screenBounds;
         }
-        for ( auto tmp : this->objects )
+        for ( auto tmp : this->level.objects )
         {
             Character *obj = tmp.second;
             obj->screenBounds = LevelScreen::WorldToScreen(this, obj->worldBounds);
             obj->sprite->screenBounds = obj->screenBounds;
         }
     }
-    #endif
 
 }
 

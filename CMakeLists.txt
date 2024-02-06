@@ -41,12 +41,15 @@ add_executable(${PROJECT_NAME}
     src/screens/exitScreen.cpp
     src/screens/gameoverScreen.cpp
     src/screens/ui.cpp
+    src/level/level.cpp
+    src/level/levelLoader.cpp
     src/strategy/villagerStrategy.cpp
     src/strategy/objectStrategy.cpp
     src/utils/datastore.cpp
     src/utils/debugStats.cpp)
 
 include_directories(src/
+                    src/level
                     src/screens
                     src/utils
                     src/character

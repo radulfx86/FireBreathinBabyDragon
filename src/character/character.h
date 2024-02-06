@@ -9,6 +9,23 @@
 
 const int FRAMESKIP_MAX = 10.0;
 
+/// object types
+using ObjectType = enum {
+    HOUSE = 0,
+    TREE = 1,
+    TOWER = 2,
+    WALL = 3
+};
+
+/// character types
+using CharacterType = enum {
+    PLAYER = 0,
+    VILLAGER = 1,
+    GUARD = 2,
+    MAGE = 3,
+    HERO = 4
+};
+
 using DistanceMapType = enum { FIRE_DISTANCE = 0,
                                PLAYER_DISTANCE = 1,
                                VILLAGE_DISTANCE = 2,

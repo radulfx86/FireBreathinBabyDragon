@@ -123,13 +123,15 @@ void LevelScreen::handleInput(float delta)
             std::cerr << "nothing to burn at " << clickGrid.x << " " << clickGrid.y << "\n";
         }
     }
+#endif
+
     // cycle through distance maps - NOTE: write the active distance map somewhere
     static bool isKeyQPressed = true;
     if ( IsKeyDown(KEY_Q) )
     {
         if ( !isKeyQPressed )
         {
-            selectedDebugDistanceMap = static_cast<DistanceMapType>((static_cast<int>(selectedDebugDistanceMap) + 1 ) % this->distanceMaps.size());
+            selectedDebugDistanceMap = static_cast<DistanceMapType>((static_cast<int>(selectedDebugDistanceMap) + 1 ) % this->level->distanceMaps.size());
             infoScreen->setActiveDistanceMap(selectedDebugDistanceMap);   
         }
         isKeyQPressed = true;
@@ -138,7 +140,6 @@ void LevelScreen::handleInput(float delta)
     {
         isKeyQPressed = false;
     }
-#endif
     static bool isKeyEPressed = true;
     if ( IsKeyDown(KEY_E) )
     {
@@ -236,27 +237,25 @@ void LevelScreen::draw(float delta)
     BeginDrawing();
         ClearBackground(GREEN);
 
-#if WAITING_FOR_REFACTORING
         //int numTiles = this->tiles.draw();
         //infoScreen->setNumTiles(numTiles);
         /// start debug
         std::string distanceText;
         static Color distanceMapColor[] = {RED, BLUE, PURPLE, YELLOW};
-        for ( int y = 0; y < this->levelSize.y; ++y )
+        for ( int y = 0; y < this->level->levelSize.y; ++y )
         {
-            for ( int x = 0; x < this->levelSize.x; ++x )
+            for ( int x = 0; x < this->level->levelSize.x; ++x )
             {
-                if ( distanceMaps.count(selectedDebugDistanceMap)
-                    && (distanceMaps[selectedDebugDistanceMap][x][y] >= 0))
+                if ( this->level->distanceMaps.count(selectedDebugDistanceMap)
+                    && (this->level->distanceMaps[selectedDebugDistanceMap][x][y] >= 0))
                 {
                     Rectangle screenTextBounds = LevelScreen::WorldToScreen(this, (Rectangle){static_cast<float>(x), static_cast<float>(y), 1,1});
-                    distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
-                    distanceText = std::to_string(distanceMaps[selectedDebugDistanceMap][x][y]);
+                    distanceText = std::to_string(this->level->distanceMaps[selectedDebugDistanceMap][x][y]);
+                    distanceText = std::to_string(this->level->distanceMaps[selectedDebugDistanceMap][x][y]);
                     DrawText(distanceText.c_str(), screenTextBounds.x, screenTextBounds.y, 10, distanceMapColor[this->selectedDebugDistanceMap]);
                 }
             }
         }
-#endif        
 
 
         this->level->draw(delta, this);

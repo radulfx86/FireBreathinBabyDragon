@@ -74,8 +74,9 @@ bool burningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
     obj->stats.HP -= delta * FIRE_DPS;
     if ( obj->stats.HP <= 0 )
     {
-        distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] = 99;
+        distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] = -1;
         std::cerr << "burned down " << obj->name << " at " << obj->worldBounds.x << " " << obj->worldBounds.y << "\n";
+        
         return true;
     }
     return false;

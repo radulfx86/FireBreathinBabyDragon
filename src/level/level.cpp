@@ -324,6 +324,26 @@ void Level::addObject(ObjectType objType, int x, int y)
     this->drawableObjects.push_back(obj);
 }
 
+void Level::removeObject(GridPos pos)
+{
+    std::map<GridPos, Character*>::iterator objectsIterator = this->objects.find(pos);
+    if ( objectsIterator != this->objects.end() )
+    {
+        Character *obj = objectsIterator->second;
+        std::vector<Character*>::iterator drawableIterator;
+        for ( drawableIterator = this->drawableObjects.begin(); drawableIterator != this->drawableObjects.end(); ++drawableIterator)
+        {
+            if ( obj == *drawableIterator )
+            {
+                break;
+            }
+        }
+        this->objects.erase(objectsIterator);
+        this->drawableObjects.erase(drawableIterator);
+        delete obj;
+    }
+}
+
 void Level::updateDistanceMap(DistanceMapType selectedDistanceMap, Vector2 worldTargetPos)
 {
     if ( nullptr == this->player )
@@ -558,35 +578,6 @@ void Level::performAttack(Character *source, float delta, std::vector<GridPos> d
     Rectangle worldBounds = LevelScreen::WorldToScreen(screen, source->worldBounds);
     applyDmgPattern(baseDmg, center, &directedAttackPattern, true); 
     source->stats.EP -= fabs(baseDmg);
-    if ( delta < 0 )
-    {
-        /// exploding projectile
-        this->nextParticles.push_back(new Particle(new AnimatedSprite(
-            // texture bounds
-            {0.0,16.0,16.0,16.0},
-            // screen bounds
-            LevelScreen::WorldToScreen(screen, source->worldBounds),
-            Datastore::getInstance().getTexture("images/ui.png"),
-            {{CharacterState::CHAR_IDLE,
-            (Animation){-1, {},
-            {   {0.2, {0.0,16.0,16.0,16.0}},
-                {0.2, {16.0,16.0,16.0,16.0}},
-                {0.2, {32.0,16.0,16.0,16.0}},
-                {0.2, {48.0,16.0,16.0,16.0}},
-                {0.2, {64.0,16.0,16.0,16.0}},
-                {0.2, {80.0,16.0,16.0,16.0}}
-            }}}}),
-            {center.x, center.y},
-            {directedAttackPattern[0].x*7, directedAttackPattern[0].y*7},
-            1.0, 100,
-            [](Particle *notUsed, Level *level) {
-                GridPos targetPos =  {notUsed->pos.x, notUsed->pos.y};
-                float dmg = 100.0;
-                level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
-                //level->applyDmgPattern(dmg, targetPos, {{0,0},{1,0},{0,1},{-1,0},{0,-1}}, true);
-
-                /* do nothing*/; return false; } ));
-    }
 }
 
 void Level::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax)
@@ -768,34 +759,19 @@ void Level::updateObjects(float delta)
             bool stateChange = obj->strategy[obj->state](obj, delta, this->distanceMaps);
             if ( stateChange )
             {
-                if ( obj->stats.HP <= 0 )
-                {
-                    deleteList.push_back(tmp.first);
-                }
-                this->updateDistanceMap(DistanceMapType::FIRE_DISTANCE,
-                    tmp.first, false, false, 99);
-                std::cerr << "UPDATING FIRE distance for OBJECT at " << tmp.first.x << " " << tmp.first.y << "\n";
             }
+        }
+        if ( obj->stats.HP <= 0 )
+        {
+            this->updateDistanceMap(DistanceMapType::FIRE_DISTANCE,
+                tmp.first, false, false, -1);
+            std::cerr << "UPDATING FIRE distance for OBJECT at " << tmp.first.x << " " << tmp.first.y << "\n";
+            deleteList.push_back(tmp.first);
         }
     }
-    /// TODO find a better way instead of this very clumsy attempt at removing stuff ...
-    if ( deleteList.size() > 0 )
+    for ( auto pos : deleteList )
     {
-        for ( std::vector<Character*>::iterator it = this->drawableObjects.begin(); it != this->drawableObjects.end(); )
-        {
-            if ( (*it)->stats.HP <= 0 )
-            {
-                it = this->drawableObjects.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        for ( GridPos key : deleteList)
-        {
-            this->objects.erase(key);
-        }
+        this->removeObject(pos);
     }
 }
 
@@ -863,6 +839,7 @@ void Level::sortDrawableObjects()
 void Level::draw(float delta, LevelScreen *screen)
 {
     sortDrawableObjects();
+    std::vector<GridPos> deleteList;
 
     for ( Character *object : this->drawableObjects )
     {
@@ -870,6 +847,14 @@ void Level::draw(float delta, LevelScreen *screen)
         {
             object->sprite->draw(delta);
         }
+        else
+        {
+            deleteList.push_back({object->worldBounds.x, object->worldBounds.y});
+        }
+    }
+    for ( GridPos pos : deleteList )
+    {
+        this->removeObject(pos);
     }
 
     for (Particle *particle : this->particles)

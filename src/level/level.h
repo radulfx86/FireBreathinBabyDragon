@@ -66,6 +66,7 @@ class Level
     GridPos lastPlayerGridPos;
     Character *player;
     void addObject(ObjectType objType, int x, int y);
+    void removeObject(GridPos pos);
     void addCharacter(CharacterType charType, int x, int y);
     void loadSounds();
     void updateNPCs(float delta);

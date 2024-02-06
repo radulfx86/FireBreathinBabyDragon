@@ -5,33 +5,34 @@
 
 #include "character.h"
 #include "particle.h"
+#include <map>
 
 /// position in 2D Grid
-using GridPos = struct {int x; int y;};
+typedef struct {int x; int y;} GridPos;
 /// less-operator for GridPos
-bool operator<(const GridPos &a, const GridPos &b)
+inline bool operator<(const GridPos &a, const GridPos &b)
 {
     return (a.x + MAX_LEVEL_SIZE_X * a.y) < (b.x + MAX_LEVEL_SIZE_X * b.y);
 }
 /// equals operator for GridPos
-bool operator==(const GridPos &a, const GridPos &b)
+inline bool operator==(const GridPos &a, const GridPos &b)
 {
     return (a.x + MAX_LEVEL_SIZE_X * a.y) == (b.x + MAX_LEVEL_SIZE_X * b.y);
 }
 /// inequality operator for GridPos
-bool operator!=(const GridPos &a, const GridPos &b)
+inline bool operator!=(const GridPos &a, const GridPos &b)
 {
     return !(a==b);
 }
 /// sum operator for GridPos
-GridPos operator+(const GridPos &a, const GridPos &b)
+inline GridPos operator+(const GridPos &a, const GridPos &b)
 {
     return (GridPos){a.x+b.x, a.y+b.y};
 }
 /// pattern where to apply damage to
-using AttackPattern = std::vector<GridPos>;
+typedef std::vector<GridPos> AttackPattern;
 /// map of directions to attack patterns
-using AttackPatternMap = std::map<Direction,AttackPattern>;
+typedef std::map<Direction,AttackPattern> AttackPatternMap;
 
 
 /// forward declaration for Level
@@ -95,8 +96,6 @@ class Level
     void checkWinCondition();
     bool isDone;
     bool isGameOver;
-    /// stuff to be moved somewhere entirely else
-    void loadLevel(LevelScreen *screen);   ///< move to level loader class
 private:
     LevelScreen *screen;
     int winThreshold;

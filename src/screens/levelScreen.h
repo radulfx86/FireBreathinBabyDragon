@@ -38,8 +38,7 @@ public:
         GameScreen(game),
         scale(1),
         offset({0,0}),
-        selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE),
-        level(this)
+        selectedDebugDistanceMap(DistanceMapType::PLAYER_DISTANCE)
      {std::cerr << __func__ << " this=" << static_cast<const void*>(this) << "\n";}
     virtual void initialize() override;
 
@@ -58,7 +57,7 @@ public:
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
         {
-            return me->level.isDone;
+            return me->level->isDone;
         }
         return false;
     }
@@ -67,7 +66,7 @@ public:
     {
         if ( LevelScreen *me = dynamic_cast<LevelScreen*>(caller) )
         {
-            return me->level.isGameOver;
+            return me->level->isGameOver;
         }
         return false;
     }
@@ -146,7 +145,7 @@ public:
     }
     TileMap tiles; ///< move to Level?
 private:
-    Level level;
+    Level *level;
     /// TODO total mess below, CLEAN UP @Radulf
     DistanceMapType selectedDebugDistanceMap;
     /// stuff to go in level

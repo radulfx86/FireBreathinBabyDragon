@@ -10,44 +10,44 @@
 const int FRAMESKIP_MAX = 10.0;
 
 /// object types
-using ObjectType = enum {
+typedef enum {
     HOUSE = 0,
     TREE = 1,
     TOWER = 2,
     WALL = 3
-};
+} ObjectType;
 
 /// character types
-using CharacterType = enum {
+typedef enum {
     PLAYER = 0,
     VILLAGER = 1,
     GUARD = 2,
     MAGE = 3,
     HERO = 4
-};
+} CharacterType;
 
-using DistanceMapType = enum { FIRE_DISTANCE = 0,
-                               PLAYER_DISTANCE = 1,
-                               VILLAGE_DISTANCE = 2,
-                               MAGE_DISTANCE = 3 };
-using DistanceMap = std::vector<std::vector<int>>;
-using MappedDistanceMaps = std::map<int,DistanceMap>;
+typedef enum { FIRE_DISTANCE = 0,
+            PLAYER_DISTANCE = 1,
+            VILLAGE_DISTANCE = 2,
+            MAGE_DISTANCE = 3 } DistanceMapType;
+typedef std::vector<std::vector<int>> DistanceMap;
+typedef std::map<int,DistanceMap> MappedDistanceMaps;
 /**
  * @brief type for direction
  * @note unused, delete if not used later
  */
-using Direction = enum { DIR_E = 0, DIR_N, DIR_W, DIR_S };
+typedef enum { DIR_E = 0, DIR_N, DIR_W, DIR_S } Direction;
 /**
  * @brief type for actions that can be performed on characters
  */
-using ActionType = enum { ACTION_HIT = 0 };
+typedef enum { ACTION_HIT = 0 } ActionType;
 /// forward declaration for ActionFunction
 class Character;
 /**
  * @brief type for function to be called to apply an action on the character
  * @param character pointer to character
  */
-using ActionFunction = bool (*)(Character *);
+typedef bool (*ActionFunction)(Character *);
 /**
  * @brief type for function to be called while a character is in a specific state
  * @note TODO might replace the second parameter with a pointer to Level
@@ -55,20 +55,20 @@ using ActionFunction = bool (*)(Character *);
  * @param delta	time since last update [s]
  * @param distanceMap   distances for every coordinate to something ...
  */
-using StateFunction = bool (*)(Character *, float, MappedDistanceMaps); 
+typedef bool (*StateFunction)(Character *, float, MappedDistanceMaps); 
 /**
  * @brief type for function to be called along with a frame in an animation
  * @note to be used for e.g. splash-animations, ...
  */
-using AnimationTrigger = std::function<void(void)>;
+typedef std::function<void(void)> AnimationTrigger;
 /**
  * @brief type for an animation frame
  * @param delta time in [s] for which the frame is shown
  * @param bounds bounds of animation frame in pixels (texture-coordinates)
  */
-using TimedFrame = std::pair<float, Rectangle>;
+typedef std::pair<float, Rectangle> TimedFrame;
 /// list of timed frames
-using AnimationFrames = std::vector<TimedFrame>;
+typedef std::vector<TimedFrame> AnimationFrames;
 /// all possible character states
 enum class CharacterState
 {

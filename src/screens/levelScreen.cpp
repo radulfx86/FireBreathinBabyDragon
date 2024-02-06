@@ -8,21 +8,8 @@
 #include <execution>
 #include <queue>
 #include <cstring>
+#include "levelLoader.h"
 
-
-/**
- * @brief "explosion" pattern
- *     x
- *   x x x
- * x x i x x
- *   x x x
- *     x
- */
-std::vector<GridPos> explosionPattern = {
-    {1,0}, {0,1}, {-1,0}, {0, -1},
-    {1,1}, {-1,-1}, {-1,1}, {1, -1},
-    {2,0}, {0,2}, {-2,0}, {0, -2}
-};
 void InfoScreen::draw(float delta)
 {
     sumDelta += delta;
@@ -66,7 +53,7 @@ void InfoScreen::setScale(float scale)
 }
 void LevelScreen::loadUI()
 {
-    this->ui = new UI({0,0}, 2.0, &this->level.player->stats);
+    this->ui = new UI({0,0}, 2.0, &this->level->player->stats);
 }
 
 void LevelScreen::initialize()
@@ -81,7 +68,7 @@ void LevelScreen::initialize()
 
     this->infoScreen = new InfoScreen({400,10});
 
-    level.loadLevel(this);
+    this->level = LevelLoader::loadLevelFromImage("images/testLevel.png", this);
 
     loadUI();
 
@@ -158,23 +145,23 @@ void LevelScreen::handleInput(float delta)
         if ( !isKeyEPressed )
         {
             float dmg = 50.0;
-            if ( dmg > this->level.player->stats.EP )
+            if ( dmg > this->level->player->stats.EP )
             {
-                dmg = this->level.player->stats.EP;
+                dmg = this->level->player->stats.EP;
             }
-            this->level.player->stats.EP -= dmg;
+            this->level->player->stats.EP -= dmg;
             if ( dmg > 0 )
             {
                 Vector2 target = LevelScreen::ScreenToWorld(this,GetMousePosition());
-                Vector2 dir = {target.x - this->level.player->worldBounds.x, target.y - this->level.player->worldBounds.y};
+                Vector2 dir = {target.x - this->level->player->worldBounds.x, target.y - this->level->player->worldBounds.y};
                 float len = sqrt(dir.x * dir.x + dir.y * dir.y)/2.0;
                 dir.x /= len;
                 dir.y /= len;
-                this->level.launchProjectile(dmg, this->level.player->worldBounds, dir, len, new AnimatedSprite(
+                this->level->launchProjectile(dmg, this->level->player->worldBounds, dir, len, new AnimatedSprite(
                     // texture bounds
                     {0.0,16.0,16.0,16.0},
                     // screen bounds
-                    LevelScreen::WorldToScreen(this, this->level.player->worldBounds),
+                    LevelScreen::WorldToScreen(this, this->level->player->worldBounds),
                     Datastore::getInstance().getTexture("images/ui.png"),
                     {{CharacterState::CHAR_IDLE,
                     (Animation){-1, {},
@@ -211,12 +198,12 @@ void LevelScreen::handleInput(float delta)
     if ( needsUpdate )
     {
         this->tiles.updateCamera(this->camera);
-        for ( Character *character : this->level.characters )
+        for ( Character *character : this->level->characters )
         {
             character->screenBounds = LevelScreen::WorldToScreen(this, character->worldBounds);
             character->sprite->screenBounds = character->screenBounds;
         }
-        for ( auto tmp : this->level.objects )
+        for ( auto tmp : this->level->objects )
         {
             Character *obj = tmp.second;
             obj->screenBounds = LevelScreen::WorldToScreen(this, obj->worldBounds);
@@ -228,17 +215,17 @@ void LevelScreen::handleInput(float delta)
 
 void LevelScreen::update(float delta)
 {
-    if ( not level.isReady() )
+    if ( not this->level->isReady() )
     {
         return;
     }
     TRACE;
     // check end of game
-    level.checkWinCondition();
+    this->level->checkWinCondition();
 
     // update object states
     handleInput(delta);
-    this->level.update(delta);
+    this->level->update(delta);
 
     // draw
     this->draw(delta);
@@ -272,7 +259,7 @@ void LevelScreen::draw(float delta)
 #endif        
 
 
-        this->level.draw(delta, this);
+        this->level->draw(delta, this);
 
         this->ui->draw(delta);
 

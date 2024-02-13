@@ -82,7 +82,7 @@ void Level::loadSounds()
 
 void Level::addCharacter(CharacterType charType, int x, int y)
 {
-    std::cerr << __func__ << "(" << (int)charType << ", " << x << ", " << y << ")\n";
+    std::cerr << __func__ << "(" << CharacterTypeStr[charType] << ", " << x << ", " << y << ")\n";
     if ( charType == CharacterType::PLAYER )
     {
         this->charSpeedMax = 10.0;
@@ -93,7 +93,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
         Rectangle playerScreenBounds = LevelScreen::WorldToScreen(screen, playerWorldBounds);
         playerScreenBounds.width = 32;
         playerScreenBounds.height = 32;
-        WorldObjectStatus initialPlayerStats = {10,1000,2};
+        WorldObjectStatus initialPlayerStats = {10,1000,2,{0,0.5,0.2,0.7,0.5}};
         std::map<CharacterState, Animation> playerAnimations = {{CharacterState::CHAR_IDLE, playerAnimationIdle},
                 {CharacterState::CHAR_WALK_E, playerAnimationWalkE},
                 {CharacterState::CHAR_WALK_W, playerAnimationWalkW},
@@ -132,7 +132,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
         Rectangle npcWorldBounds;
         npcWorldBounds.width = 1;
         npcWorldBounds.height = 1;
-        WorldObjectStatus initialNPCStats = {10,10,-5};
+        WorldObjectStatus initialNPCStats = {10,10,-5,{1.0,0.0,0.0,0.5,0.5}};
         Rectangle npcScreenBounds{0,0,16,16};
         Rectangle npcTextureBounds{0,0,16,16};
         std::map<CharacterState, Animation> npcAnimations = {
@@ -152,7 +152,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
         npcWorldBounds.x = x;
         npcWorldBounds.y = y;
         npcScreenBounds = LevelScreen::WorldToScreen(screen, npcWorldBounds);
-        npcTextureBounds.y = GetRandomValue(1,3) * 16;
+        npcTextureBounds.y = 0;//GetRandomValue(1,3) * 16;
         CharacterState npcState = CharacterState::CHAR_IDLE;
         Character *npc = 
             new Character("NPC", npcState,
@@ -177,6 +177,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
             {
                 npc->name = "Villager";
                 npc->sprite->textureBounds.y = 0 * 16;
+                npc->sprite->textureOffset.y = 0 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleVillager;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveVillager;
                 npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveVillager;
@@ -194,6 +195,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
                 npc->stats.AP = 2;
                 npc->stats.EP = 5;
                 npc->sprite->textureBounds.y = 2 * 16;
+                npc->sprite->textureOffset.y = 2 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleGuard;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveGuard;
                 npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveGuard;
@@ -211,6 +213,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
                 npc->stats.AP = 5;
                 npc->stats.EP = 15;
                 npc->sprite->textureBounds.y = 3 * 16;
+                npc->sprite->textureOffset.y = 3 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleMage;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveMage;
                 npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveMage;
@@ -220,6 +223,8 @@ void Level::addCharacter(CharacterType charType, int x, int y)
                 npc->strategy[CharacterState::CHAR_ATTACK_E] = strategy::attackMage;
                 npc->strategy[CharacterState::CHAR_ATTACK_S] = strategy::attackMage;
                 npc->strategy[CharacterState::CHAR_ATTACK_W] = strategy::attackMage;
+                npc->strategy[CharacterState::CHAR_SPECIAL_1] = strategy::attackMage;
+                std::cerr << "added mage at " << x << " " << y << " textureBounds.y: " << npc->sprite->textureBounds.y  << "\n";
                 break;
             }
             case HERO:
@@ -227,6 +232,7 @@ void Level::addCharacter(CharacterType charType, int x, int y)
                 npc->name = "Hero";
                 /// hero for now cosplays as female villager
                 npc->sprite->textureBounds.y = 1 * 16;
+                npc->sprite->textureOffset.y = 1 * 16;
                 npc->strategy[CharacterState::CHAR_IDLE] = strategy::idleHero;
                 npc->strategy[CharacterState::CHAR_WALK_E] = strategy::moveHero;
                 npc->strategy[CharacterState::CHAR_WALK_W] = strategy::moveHero;
@@ -251,11 +257,11 @@ void Level::addCharacter(CharacterType charType, int x, int y)
 
 void Level::addObject(ObjectType objType, int x, int y)
 {
-    std::cerr << __func__ << "(" << (int)objType << ", " << x << ", " << y << ")\n";
+    // std::cerr << __func__ << "(" << (int)objType << ", " << x << ", " << y << ")\n";
     Rectangle objectWorldBounds;
     objectWorldBounds.width = 1;
     objectWorldBounds.height = 2;
-    WorldObjectStatus initialObjectStats = {10,10};
+    WorldObjectStatus initialObjectStats = {10,10,0,{0,-1.0,0.2,1.0,0.2}};
     Rectangle objectScreenBounds{0,0,1,2};
     Rectangle objectTextureBounds{0,0,16,32};
     const int MAX_OBJECTS = 20;
@@ -483,7 +489,7 @@ void Level::movePlayer(float delta)
             default:
                 break;
         }
-        performAttack(this->player, delta, playerAttackPattern[attackDir]);
+        performAttack(this->player, delta, DamageType::FIRE, playerAttackPattern[attackDir]);
         /// simple NPC kill
         Character *hit = this->getCollision(this->player, this->player->worldBounds);
         if ( hit )
@@ -501,18 +507,32 @@ void Level::movePlayer(float delta)
     }
 }
 
-void Level::applyDmgPattern(float baseDmg, GridPos center, std::vector<GridPos> *attackPattern, bool addParticles )
+void Level::applyDmgPattern(Damage dmg, GridPos center, std::vector<GridPos> *attackPattern, bool addParticles )
 {
-    float dmg = baseDmg / attackPattern->size();
+    float partDmg = dmg.value / attackPattern->size();
     for ( GridPos pos : *attackPattern )
     {
         GridPos tmp = center + pos;
         if ( inBounds(tmp) )
         {
-            // damage
-            if ( this->objects.count(tmp) )
+            Rectangle dmgRect = {tmp.x, tmp.y, 1, 1};
+            // damage to objects
+            if (this->objects.count(tmp))
             {
-                this->objects[tmp]->stats.HP -= dmg;
+                this->objects[tmp]->stats.HP -= this->objects[tmp]->stats.dmgApplicator[dmg.type] * partDmg;
+            }
+            // damage to NPC
+            for ( Character *character : this->characters )
+            {
+                if ( CheckCollisionRecs(character->worldBounds, dmgRect) )
+                {
+                    character->stats.HP -= character->stats.dmgApplicator[dmg.type] * partDmg;
+                }
+            }
+            // damage to player
+            if ( CheckCollisionRecs(this->player->worldBounds, dmgRect ) )
+            {
+                this->player->stats.HP -= this->player->stats.dmgApplicator[dmg.type] * partDmg;
             }
             // just fancy effects, no dmg
             if ( addParticles )
@@ -533,13 +553,13 @@ void Level::applyDmgPattern(float baseDmg, GridPos center, std::vector<GridPos> 
                         {0.2, {80.0,0.0,16.0,16.0}}
                     }}}}),
                     {center.x + 0.5 * pos.x, center.y + 0.5 * pos.y},
-                    {pos.x*2.0f, pos.y*2.0f}, 1.0, 0, [](Particle *notUsed,Level *alsoNotUsed) { /* do nothing*/; return false; }));
+                    {pos.x*2.0f, pos.y*2.0f}, 1.0, {0, DamageType::FIRE, 0}, [](Particle *notUsed,Level *alsoNotUsed) { /* do nothing*/; return false; }));
             }
         }
     }
 }
 
-void Level::launchProjectile(float dmg,
+void Level::launchProjectile(Damage dmg,
                                     Rectangle start,
                                     Vector2 dir,
                                     float lifetime,
@@ -552,13 +572,12 @@ void Level::launchProjectile(float dmg,
         lifetime,
         dmg,
         [&](Particle *particle, Level *level) {
-            float dmg = particle->dmg;
             GridPos targetPos =  {particle->pos.x, particle->pos.y};
-            level->applyDmgPattern(dmg, targetPos, &explosionPattern, true);
+            level->applyDmgPattern(particle->dmg, targetPos, &explosionPattern, true);
             /* do nothing*/; return false; } ));
 }
 
-void Level::performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern)
+void Level::performAttack(Character *source, float delta, DamageType type, std::vector<GridPos> directedAttackPattern)
 {
     if ( directedAttackPattern.size() == 0 )
     {
@@ -574,10 +593,10 @@ void Level::performAttack(Character *source, float delta, std::vector<GridPos> d
         return;   
     }
     GridPos center = {source->worldBounds.x + 0.5f, source->worldBounds.y + 0.5};
-    float baseDmg = source->stats.AP * delta;
+    Damage baseDmg = {source->stats.AP * delta, type, 0.0};
     Rectangle worldBounds = LevelScreen::WorldToScreen(screen, source->worldBounds);
     applyDmgPattern(baseDmg, center, &directedAttackPattern, true); 
-    source->stats.EP -= fabs(baseDmg);
+    source->stats.EP -= fabs(baseDmg.value);
 }
 
 void Level::updateDistanceMap(DistanceMapType type, GridPos pos, bool clean, bool ignoreObjects, int distMax)
@@ -743,7 +762,7 @@ void Level::updateNPCs(float delta)
     {
         if ( npc->strategy.count(npc->state) > 0 )
         {
-            npc->strategy[npc->state](npc, delta, this->distanceMaps);
+            npc->strategy[npc->state](npc, delta, this);
         }
     }
 }
@@ -756,7 +775,7 @@ void Level::updateObjects(float delta)
         Character *obj = tmp.second;
         if ( obj->strategy.count(obj->state) > 0 )
         {
-            bool stateChange = obj->strategy[obj->state](obj, delta, this->distanceMaps);
+            bool stateChange = obj->strategy[obj->state](obj, delta, this);
             if ( stateChange )
             {
             }

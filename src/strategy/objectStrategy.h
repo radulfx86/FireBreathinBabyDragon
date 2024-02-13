@@ -4,11 +4,11 @@
 namespace strategy
 {
 
-bool idleObject(Character *obj, float delta, MappedDistanceMaps distanceMaps);
+bool idleObject(Character *obj, float delta, Level *level);
 
-bool burningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps);
+bool burningObject(Character *obj, float delta, Level *level);
 
-bool startBurningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps);
+bool startBurningObject(Character *obj, float delta, Level *level);
 
 } // end namespace strategy
 #endif // OBJECT_STRATEGY_H

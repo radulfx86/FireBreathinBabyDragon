@@ -47,6 +47,11 @@ Level *LevelLoader::loadLevelFromImage(std::string path, LevelScreen *screen)
                 /// add Guard
                 level->addCharacter(CharacterType::GUARD, x, y);
             }
+            if ( levelColor.r == 255 && levelColor.g == 0 && levelColor.b == 215 )
+            {
+                /// add Hero
+                level->addCharacter(CharacterType::HERO, x, y);
+            }
             if ( levelColor.r == 75 && levelColor.g == 105 && levelColor.b == 47 )
             {
                 /// add Tree

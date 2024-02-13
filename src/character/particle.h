@@ -54,7 +54,7 @@ public:
             Rectangle pos,
             Vector2 speed,
             float lifetime,
-            float dmg,
+            Damage dmg,
             ParticleTriggerFunction trigger)
         :  sprite(sprite),
             pos(pos),
@@ -64,10 +64,7 @@ public:
             trigger(trigger),
             alive(true),
             uid(UIDGenerator::getInstance().requestUID())
-        {
-            
-        std::cerr << __func__ << " of " << this->str() << "\n";
-}
+        { }
     /**
      * @brief update particle position and alive-state
      * @note call trigger-function if not alive after update
@@ -101,7 +98,7 @@ public:
     /// current particle position
     Rectangle pos;
     /// particle damage (if projectile)
-    float dmg;
+    Damage dmg;
 private:
     /// unique ID for tracking
     const int uid;

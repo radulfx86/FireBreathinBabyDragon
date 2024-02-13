@@ -14,6 +14,11 @@ inline bool operator<(const GridPos &a, const GridPos &b)
 {
     return (a.x + MAX_LEVEL_SIZE_X * a.y) < (b.x + MAX_LEVEL_SIZE_X * b.y);
 }
+/// less-operator for GridPos
+inline bool operator>(const GridPos &a, const GridPos &b)
+{
+    return (a.x + MAX_LEVEL_SIZE_X * a.y) > (b.x + MAX_LEVEL_SIZE_X * b.y);
+}
 /// equals operator for GridPos
 inline bool operator==(const GridPos &a, const GridPos &b)
 {
@@ -28,6 +33,11 @@ inline bool operator!=(const GridPos &a, const GridPos &b)
 inline GridPos operator+(const GridPos &a, const GridPos &b)
 {
     return (GridPos){a.x+b.x, a.y+b.y};
+}
+inline bool isInside(const GridPos &test, const GridPos &min, const GridPos &max)
+{
+    return test.x >= min.x && test.x <= max.x
+            && test.y >= min.y && test.y <= max.y;
 }
 /// pattern where to apply damage to
 typedef std::vector<GridPos> AttackPattern;
@@ -74,9 +84,9 @@ class Level
     Texture2D objectTexture, npcTexture;
     /// distance maps - mapped per distance-type
     MappedDistanceMaps distanceMaps;
-    void performAttack(Character *source, float delta, std::vector<GridPos> directedAttackPattern);
-    void applyDmgPattern(float baseDmg, GridPos pos, std::vector<GridPos> *attackPattern, bool addParticles );
-    void launchProjectile(float dmg,
+    void performAttack(Character *source, float delta, DamageType type, std::vector<GridPos> directedAttackPattern);
+    void applyDmgPattern(Damage dmg, GridPos pos, std::vector<GridPos> *attackPattern, bool addParticles );
+    void launchProjectile(Damage dmg,
                 Rectangle start,
                 Vector2 dir,
                 float lifetime,
@@ -97,8 +107,8 @@ class Level
     void checkWinCondition();
     bool isDone;
     bool isGameOver;
-private:
     LevelScreen *screen;
+private:
     int winThreshold;
 };
 

@@ -26,6 +26,31 @@ typedef enum {
     HERO = 4
 } CharacterType;
 
+const std::string CharacterTypeStr[] {
+    "PLAYER",
+    "VILLAGER",
+    "GUARD",
+    "MAGE",
+    "HERO"
+};
+
+typedef enum
+{
+    FIRE = 0,
+    WATER = 1,
+    WIND = 2,
+    LIGHTNING = 3,
+    STEEL = 4,
+    NUM_DMG_TYPES
+} DamageType;
+
+typedef struct
+{
+    float value;
+    DamageType type;
+    float time;
+} Damage;
+
 typedef enum { FIRE_DISTANCE = 0,
             PLAYER_DISTANCE = 1,
             VILLAGE_DISTANCE = 2,
@@ -48,14 +73,16 @@ class Character;
  * @param character pointer to character
  */
 typedef bool (*ActionFunction)(Character *);
+/// forward declaration for StateFunction
+class Level;
 /**
  * @brief type for function to be called while a character is in a specific state
  * @note TODO might replace the second parameter with a pointer to Level
  * @param character pointer to character
  * @param delta	time since last update [s]
- * @param distanceMap   distances for every coordinate to something ...
+ * @param level pointer to level
  */
-typedef bool (*StateFunction)(Character *, float, MappedDistanceMaps); 
+typedef bool (*StateFunction)(Character *, float, Level *); 
 /**
  * @brief type for function to be called along with a frame in an animation
  * @note to be used for e.g. splash-animations, ...
@@ -96,6 +123,8 @@ typedef struct WorldObjectStatus
     int EP;
     /// attack points
     int AP;
+    /// dmg applicator
+    float dmgApplicator[DamageType::NUM_DMG_TYPES];
 } WorldObjectStatus;
 
 /// Animation structure
@@ -146,7 +175,6 @@ public:
     Rectangle textureBounds;
     /// screen bounds of sprite
     Rectangle screenBounds;
-protected:
     /// offset of sprite in sprite sheet in texture coordinates
     Vector2 textureOffset;
 private:

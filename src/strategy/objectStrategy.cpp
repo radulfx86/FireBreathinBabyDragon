@@ -1,21 +1,22 @@
 #include "objectStrategy.h"
+#include "level.h"
 #include <iostream>
 namespace strategy
 {
 
 
-bool idleObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
+bool idleObject(Character *obj, float delta, Level *level)
 {
     if ( nullptr == obj )
     {
         return false;
     }
-    if ( distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] > 1 )
+    if ( level->distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] > 1 )
     {
         return false;
     }
     #if FASTBURN 
-    if ( distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] == 1 )
+    if ( level->distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] == 1 )
     {
         /// FASTBURN
         /// BUUUUUUUUUUUUUUUUUUUUUUUUUUUUURN
@@ -39,12 +40,12 @@ bool idleObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
             int y = obj->worldBounds.y + dy;
         if ( dx == 0 && dy == 0)
             continue;
-            if ( x < 0 || x >= distanceMaps[DistanceMapType::FIRE_DISTANCE].size()
-                || y < 0 || y >= distanceMaps[DistanceMapType::FIRE_DISTANCE][0].size() )
+            if ( x < 0 || x >= level->distanceMaps[DistanceMapType::FIRE_DISTANCE].size()
+                || y < 0 || y >= level->distanceMaps[DistanceMapType::FIRE_DISTANCE][0].size() )
             {
                 continue;
             }
-            if ( distanceMaps[DistanceMapType::FIRE_DISTANCE][x][y] == 0 )
+            if ( level->distanceMaps[DistanceMapType::FIRE_DISTANCE][x][y] == 0 )
             {
                 ++countBurning;
             }
@@ -64,7 +65,7 @@ bool idleObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
     return false;
 }
 
-bool burningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
+bool burningObject(Character *obj, float delta, Level *level)
 {
     if ( nullptr == obj )
     {
@@ -74,7 +75,7 @@ bool burningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
     obj->stats.HP -= delta * FIRE_DPS;
     if ( obj->stats.HP <= 0 )
     {
-        distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] = -1;
+        level->distanceMaps[DistanceMapType::FIRE_DISTANCE][obj->worldBounds.x][obj->worldBounds.y] = -1;
         std::cerr << "burned down " << obj->name << " at " << obj->worldBounds.x << " " << obj->worldBounds.y << "\n";
         
         return true;
@@ -82,7 +83,7 @@ bool burningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
     return false;
 }
 
-bool startBurningObject(Character *obj, float delta, MappedDistanceMaps distanceMaps)
+bool startBurningObject(Character *obj, float delta, Level *level)
 {
     if ( nullptr == obj )
     {

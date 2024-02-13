@@ -145,13 +145,13 @@ void LevelScreen::handleInput(float delta)
     {
         if ( !isKeyEPressed )
         {
-            float dmg = 50.0;
-            if ( dmg > this->level->player->stats.EP )
+            Damage dmg = {50.0, DamageType::FIRE, 0.0};
+            if ( dmg.value > this->level->player->stats.EP )
             {
-                dmg = this->level->player->stats.EP;
+                dmg.value = this->level->player->stats.EP;
             }
-            this->level->player->stats.EP -= dmg;
-            if ( dmg > 0 )
+            this->level->player->stats.EP -= dmg.value;
+            if ( dmg.value > 0 )
             {
                 Vector2 target = LevelScreen::ScreenToWorld(this,GetMousePosition());
                 Vector2 dir = {target.x - this->level->player->worldBounds.x, target.y - this->level->player->worldBounds.y};

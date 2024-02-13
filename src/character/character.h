@@ -61,7 +61,7 @@ typedef std::map<int,DistanceMap> MappedDistanceMaps;
  * @brief type for direction
  * @note unused, delete if not used later
  */
-typedef enum { DIR_E = 0, DIR_N, DIR_W, DIR_S } Direction;
+typedef enum { DIR_E = 0, DIR_N, DIR_W, DIR_S, DIR_NONE } Direction;
 /**
  * @brief type for actions that can be performed on characters
  */

@@ -44,6 +44,8 @@ typedef std::vector<GridPos> AttackPattern;
 /// map of directions to attack patterns
 typedef std::map<Direction,AttackPattern> AttackPatternMap;
 
+extern AttackPatternMap guardAttackPattern;
+
 
 /// forward declaration for Level
 class LevelScreen;

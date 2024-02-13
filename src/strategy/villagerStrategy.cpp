@@ -7,7 +7,7 @@
 namespace strategy
 {
 
-GridPos getNextDir(GridPos pos, DistanceMap distanceMap, bool isWalk)
+GridPos getNextGridPos(GridPos pos, DistanceMap distanceMap, bool isWalk)
 {
     GridPos dir = {0,0};
     GridPos zero = {0,0};
@@ -17,6 +17,10 @@ GridPos getNextDir(GridPos pos, DistanceMap distanceMap, bool isWalk)
     {
         for ( int dy = -1; dy < 2; ++dy )
         {
+            if ( isWalk && (abs(dx) + abs(dy)) > 1)
+            {
+                continue;
+            }
             GridPos test = pos + (GridPos){dx, dy};
             int tdist = distanceMap[test.x][test.y];
             if ( isInside(test, zero, mapSize) && tdist < dist )
@@ -25,6 +29,38 @@ GridPos getNextDir(GridPos pos, DistanceMap distanceMap, bool isWalk)
                 dir = test;
             }
         }
+    }
+    return dir;
+}
+
+Direction getNextDir(GridPos pos, DistanceMap distanceMap)
+{
+    const int maxX = distanceMap.size()-1;
+    const int maxY = distanceMap[0].size()-1;
+    pos.x = (pos.x < 0 ) ? 0 : pos.x > maxX ? maxX : pos.x;
+    pos.y = (pos.y < 0 ) ? 0 : pos.y > maxY ? maxY : pos.y;
+    int dist = distanceMap[pos.x][pos.y];
+    Direction dir = Direction::DIR_NONE;
+    // left
+    if ( pos.x > 0 && distanceMap[pos.x-1][pos.y] >= 0 && distanceMap[pos.x-1][pos.y] < dist )
+    {
+        dist = distanceMap[pos.x-1][pos.y];
+        dir = Direction::DIR_W;
+    } // right
+    if ( pos.x < maxX && distanceMap[pos.x+1][pos.y] >= 0 && distanceMap[pos.x+1][pos.y] < dist )
+    {
+        dist = distanceMap[pos.x+1][pos.y];
+        dir = Direction::DIR_W;
+    } // up
+    if ( pos.y > 0 && distanceMap[pos.x][pos.y-1] >= 0 && distanceMap[pos.x][pos.y-1] < dist )
+    {
+        dist = distanceMap[pos.x][pos.y-1];
+        dir = Direction::DIR_W;
+    } // down
+    if ( pos.y < maxY && distanceMap[pos.x][pos.y+1] >= 0 && distanceMap[pos.x][pos.y+1] < dist )
+    {
+        dist = distanceMap[pos.x][pos.y+1];
+        dir = Direction::DIR_W;
     }
     return dir;
 }
@@ -126,17 +162,83 @@ bool attackVillager(Character *character, float delta, Level *level)
 
 bool idleGuard(Character *character, float delta, Level *level)
 {
-    return idleVillager(character, delta, level);
+    const float GUARD_ENGAGE_DIST = 2.0f;
+
+    if ( nullptr == character )
+    {
+        return false;
+    }
+    CharacterState newState = CharacterState::CHAR_IDLE;
+    int x = static_cast<int>(character->worldBounds.x+.5f);
+    int y = static_cast<int>(character->worldBounds.y+.5f);
+    int playerDist = level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y];
+    if ((playerDist >= 0) && (playerDist < GUARD_ENGAGE_DIST )
+        && (character->stats.EP > 0 ))
+    {
+        getNextState(x, y, newState, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
+        switch (newState)
+        {
+            case CharacterState::CHAR_WALK_E:
+                newState = CharacterState::CHAR_ATTACK_E;
+                break;
+            case CharacterState::CHAR_WALK_W:
+                newState = CharacterState::CHAR_ATTACK_W;
+                break;
+            case CharacterState::CHAR_WALK_N:
+                newState = CharacterState::CHAR_ATTACK_N;
+                break;
+            case CharacterState::CHAR_WALK_S:
+                newState = CharacterState::CHAR_ATTACK_S;
+                break;
+            default:
+                break;
+        }
+    }
+    else
+    {
+        getNextState(x, y, newState, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
+    }
+    TraceLog(LOG_DEBUG,"%s (%s) state %d -> %d", __func__, character->name,
+     static_cast<int>(character->state), static_cast<int>(newState));
+    character->state = newState;
+    character->sprite->animationState.activeAnimation = newState;
+    return true;
 }
 
 bool moveGuard(Character *character, float delta, Level *level)
 {
-    return moveVillager(character, delta, level);
+    return idleGuard(character, delta, level);
 }
 
 bool attackGuard(Character *character, float delta, Level *level)
 {
-    return attackVillager(character, delta, level);
+    const float GUARD_ENGAGE_DIST = 2.0f;
+    int x = static_cast<int>(character->worldBounds.x+0.5f);
+    int y = static_cast<int>(character->worldBounds.y+0.5f);
+    std::cerr << "mage at " << x << " " << y << " in attack state\n";
+    int playerDist = level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y];
+    if ((playerDist >= 0) && (playerDist < GUARD_ENGAGE_DIST )
+        && (character->stats.EP > 0 ))
+    {
+        std::cerr << "mage at " << x << " " << y << " attacking from distance " << level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] << "\n";
+        Vector2 dir = {level->player->worldBounds.x - x, level->player->worldBounds.y - y};
+        float dist = sqrt(dir.x * dir.x + dir.y * dir.y)/2.0;
+        //GridPos pDir =  getNextGridPos({x,y}, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE], false);
+        //dir.x = pDir.x; dir.y = pDir.y;
+        //float dist = level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y];
+        dir.x /= dist;
+        dir.y /= dist;
+        Damage dmg = {10, DamageType::STEEL, 0};
+        character->stats.EP -= dmg.value/19;
+        Direction attackDirection = getNextDir({x,y}, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE]);
+        if ( attackDirection < Direction::DIR_NONE )
+        {
+            std::cerr << "Guard at " << x << " " << y << " attacks in dir: " << attackDirection << "\n";
+            level->applyDmgPattern(dmg, {x,y}, &guardAttackPattern[attackDirection], true);
+        }
+        return true;
+    }
+    return idleGuard(character, delta, level);
 }
 
 bool idleMage(Character *character, float delta, Level *level)
@@ -173,7 +275,7 @@ bool attackMage(Character *character, float delta, Level *level)
         std::cerr << "mage at " << x << " " << y << " attacking from distance " << level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y] << "\n";
         Vector2 dir = {level->player->worldBounds.x - x, level->player->worldBounds.y - y};
         float dist = sqrt(dir.x * dir.x + dir.y * dir.y)/2.0;
-        //GridPos pDir =  getNextDir({x,y}, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE], false);
+        //GridPos pDir =  getNextGridPos({x,y}, level->distanceMaps[DistanceMapType::PLAYER_DISTANCE], false);
         //dir.x = pDir.x; dir.y = pDir.y;
         //float dist = level->distanceMaps[DistanceMapType::PLAYER_DISTANCE][x][y];
         dir.x /= dist;
